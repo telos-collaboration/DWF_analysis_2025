@@ -1,4 +1,4 @@
-# Domain Wall fermions analysis code for Sp(4) gauge theories and Nf = 2 fundamental fermions.
+# DWF for Sp(4) gauge theories and Nf = 2 fundamental fermions.
 
 This repository contains a collection of Python scripts and supporting files used to analyze lattice field theory data for DWFs + Sp(4) gauge theory with Nf = 2 fundamental fermions. The main focus is on performing Wilson Flow analyses, extracting masses and matrix elements from correlators, fitting spectral properties, and studying chiral dynamics.
 
