@@ -55,11 +55,11 @@ Maurizio Piai, Davide Vadacchino, Peter Boyle.
 
 | Script                   | Description |
 |--------------------------|-------------|
+| `spectrum_and_decay.py` | Fit correlators and extract mass spectrum and decay constants |
 | `WF_and_Q.py`            | Analyze Wilson Flow and compute topological charge |
 | `plot_WF_E.py`           | Plot energy density from Wilson Flow |
 | `plot_topcharge.py`      | Plot topological charge evolution |
 | `NLO_w0.py`              | Compute Wilson Flow reference scales `w₀` at NLO for plotting |
-| `spectrum_and_decay.py` | Fit correlators and extract mass spectrum and decay constants |
 | `GMOR_and_mV_mPS_ratio.py` | Test GMOR relation and compute vector/pseudoscalar mass ratio |
 | `pcac.py`                | Compute PCAC mass from correlators |
 | `perform_chiPT.py`       | Perform chiral perturbation theory fits |
