@@ -1,0 +1,90 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  Symplectic lattice gauge theories in the Grid framework: domain wall fermions and
+continuum extrapolations—data release
+message: >-
+  Please cite if you reuse portions of this code to   enable
+  your own work.
+type: software
+authors:
+  - given-names: Niccolò
+    family-names: Forzano
+    email: 2227764@swansea.ac.uk
+    affiliation: >-
+      Department of Physics, Faculty  of Science and
+      Engineering, Swansea University, Singleton Park, SA2
+      8PP, Swansea, Wales, UK
+    orcid: 'https://orcid.org/0000-0003-0985-8858'
+  - given-names: Ryan
+    family-names: Hill
+    email: ryan.hill@ed.ac.uk
+    affiliation: >-
+      School of Physics and Astronomy, University of
+      Edinburgh, Edinburgh EH9 3FD, United Kingdom
+  - given-names: Luigi
+    family-names: Del Debbio
+    email: luigi.del.debbio@ed.ac.uk
+    affiliation: >-
+      Higgs Centre for Theoretical Physics, School of
+      Physics and Astronomy,  The University of Edinburgh,
+      Peter Guthrie Tait Road, Edinburgh EH9 3FD, UK
+    orcid: 'https://orcid.org/0000-0003-4246-3305'
+  - given-names: Deog
+    family-names: Ki Hong
+    email: dkhong@pusan.ac.kr
+    affiliation: >-
+      Department of Physics, Pusan National University,
+      Busan 46241, Korea
+  - given-names: Jong-Wan
+    family-names: Lee
+    email: jwlee823@pusan.ac.kr
+    affiliation: >-
+      Institute for Basic Science (IBS), Daejeon, 34126,
+      Korea.
+  - given-names: C.-J. David
+    family-names: Lin
+    email: dlin@nycu.edu.tw
+    affiliation: >-
+      Institute of Physics, National Yang Ming Chiao Tung
+      University, 1001 Ta-Hsueh Road, Hsinchu 30010, Taiwan
+  - given-names: Biagio
+    family-names: Lucini
+    email: B.Lucini@Swansea.ac.uk
+    affiliation: >-
+      Swansea Academy of Advanced Computing, Swansea
+      University (Bay Campus), Fabian Way, SA1 8EN Swansea,
+      Wales, United Kingdom
+    orcid: 'https://orcid.org/0000-0001-8974-8266'
+  - email: alessandro.lupo@cpt.univ-mrs.fr
+    affiliation: >-
+      Aix-Maseille Universite, Universite de Toulon,
+    CNRS, CPT, Marseille, France
+    given-names: Alessandro
+    family-names: Lupo
+    orcid: 'https://orcid.org/0000-0001-9661-7811'
+  - given-names: Maurizio
+    family-names: Piai
+    orcid: 'https://orcid.org/0000-0002-2251-0111'
+    affiliation: >-
+      Department of Physics, Faculty  of Science and
+      Engineering, Swansea University, Singleton Park, SA2
+      8PP, Swansea, Wales, UK
+    email: m.piai@swansea.ac.uk
+  - given-names: Davide
+    family-names: Vadacchino
+    affiliation: >-
+      Centre for Mathematical Sciences, University of
+      Plymouth, Plymouth, PL4 8AA, United Kingdom
+    email: davide.vadacchino@plymouth.ac.uk
+    orcid: 'https://orcid.org/0000-0002-5783-5602'
+  - given-names: Ed
+    family-names: Bennett
+    affiliation: >-
+      Swansea Academy of Advanced Computing, Swansea
+      University (Bay Campus), Fabian Way, SA1 8EN Swansea,
+      Wales, United Kingdom
+    email: ed.bennett@swansea.ac.uk
+    orcid: 'https://orcid.org/0000-0002-1678-6701'
