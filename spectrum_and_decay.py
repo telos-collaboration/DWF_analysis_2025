@@ -228,6 +228,7 @@ with open(filename, mode='a', newline='') as file:
         g5g5_avgs = np.array(
             [np.mean(g5g5_correlators_array[i, therm:]) for i in range(g5g5_correlators_array.shape[0])])
         ZA, err_ZA, ZA_extended = jackknife_effective_mass_block_ZA(PCAC_correlators_array, g5g5_correlators_array)
+        err_ZA /= V
         tmp = g5g5_avgs
         mres_array = tmp
 
