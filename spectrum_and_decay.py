@@ -245,8 +245,7 @@ with open(filename, mode='a', newline='') as file:
         Lt_corr = np.mean(g5g5_correlators_array, axis=1)
         err_Lt = np.std(g5g5_correlators_array, axis=1)
 
-        # Find plateau
-        factor = 3
+        factor = 1/100
         ti = int(time_extent / 2) - 6
         tf = int(time_extent / 2) - 2
         plateau = True
@@ -254,7 +253,7 @@ with open(filename, mode='a', newline='') as file:
         if (plateau):
             covariance_matrix = np.cov(ZA_extended.T)
             mean_plateau_ZA, error_plateau_ZA, chi_square = perform_correlated_fit(ZA, covariance_matrix, ti, tf)
-            error_plateau_ZA = factor * error_plateau_ZA
+            error_plateau_ZA = factor * error_plateau_ZA 
 
         # Write the results for this subdirectory
         results = [
