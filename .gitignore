@@ -1,0 +1,7 @@
+cfgs/
+WF_cfgs/
+CSVs/
+tmp/
+
+*.pyc
+*~
