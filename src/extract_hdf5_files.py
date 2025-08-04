@@ -1,40 +1,45 @@
 import pandas as pd
 
+
 def extract_spectrum_channel(csv_path, directory, channel):
     df = pd.read_csv(csv_path)
-    row = df[df['name'] == directory]
+    row = df[df["name"] == directory]
     if row.empty:
         raise ValueError(f"Directory {directory} not found in the CSV.")
     mean = row[channel].values[0]
     error = row[f"{channel}_err"].values[0]
     return pd.Series({"mean": mean, "error": error})
 
+
 def extract_fpi(csv_path, directory):
     df = pd.read_csv(csv_path)
-    row = df[df['name'] == directory]
+    row = df[df["name"] == directory]
     if row.empty:
         raise ValueError(f"Directory {directory} not found in the CSV.")
-    mean = row['fpi'].values[0]
-    error = row['fpi_err'].values[0]
+    mean = row["fpi"].values[0]
+    error = row["fpi_err"].values[0]
     return pd.Series({"mean": mean, "error": error})
+
 
 def extract_Z_A(csv_path, directory):
     df = pd.read_csv(csv_path)
-    row = df[df['name'] == directory]
+    row = df[df["name"] == directory]
     if row.empty:
         raise ValueError(f"Directory {directory} not found in the CSV.")
-    mean = row['Z_A'].values[0]
-    error = row['err_Z_A'].values[0]
+    mean = row["Z_A"].values[0]
+    error = row["err_Z_A"].values[0]
     return pd.Series({"mean": mean, "error": error})
+
 
 def extract_w0(csv_path, directory):
     df = pd.read_csv(csv_path)
-    row = df[df['directory'] == directory]
+    row = df[df["directory"] == directory]
     if row.empty:
         raise ValueError(f"Directory {directory} not found in the CSV.")
-    mean = row['w_0'].values[0]
-    error = row['w_0_error'].values[0]
+    mean = row["w_0"].values[0]
+    error = row["w_0_error"].values[0]
     return pd.Series({"mean": mean, "error": error})
+
 
 def fill_array(plateau_fits_path, WF_measurements_path):
     data = []
@@ -47,12 +52,12 @@ def fill_array(plateau_fits_path, WF_measurements_path):
 
             # Extract data
             spectrum_channels = {
-                "PS": extract_spectrum_channel(plateau_fits_path, directory, 'g0g5'),
-                "V": extract_spectrum_channel(plateau_fits_path, directory, 'gi'),
-                "T": extract_spectrum_channel(plateau_fits_path, directory, 'g0gi'),
-                "AV": extract_spectrum_channel(plateau_fits_path, directory, 'g5gi'),
-                "AT": extract_spectrum_channel(plateau_fits_path, directory, 'g0g5gi'),
-                "S": extract_spectrum_channel(plateau_fits_path, directory, 'id'),
+                "PS": extract_spectrum_channel(plateau_fits_path, directory, "g0g5"),
+                "V": extract_spectrum_channel(plateau_fits_path, directory, "gi"),
+                "T": extract_spectrum_channel(plateau_fits_path, directory, "g0gi"),
+                "AV": extract_spectrum_channel(plateau_fits_path, directory, "g5gi"),
+                "AT": extract_spectrum_channel(plateau_fits_path, directory, "g0g5gi"),
+                "S": extract_spectrum_channel(plateau_fits_path, directory, "id"),
             }
             fpi_data = extract_fpi(plateau_fits_path, directory)
             ZA_data = extract_Z_A(plateau_fits_path, directory)

@@ -11,4 +11,3 @@ legend.handletextpad : 0.3
 legend.columnspacing : 0.5
 xtick.labelsize : 14   # set font size of x tick labels to 8
 ytick.labelsize : 14    # set font size of y tick labels to 8
-
