@@ -1,60 +1,60 @@
+from argparse import ArgumentParser
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
-import sys
 
-# Activating text rendering by LaTeX
-plt.style.use("paperdraft.mplstyle")
+from . import plots
 
-# Check if the flag '--dp' is present
-use_dp_flag = "--dp" in sys.argv
+parser = ArgumentParser(description="Plot GMOR and vector-pseudoscalar mass ratio")
+parser.add_argument(
+    "--Q_history",
+    help="File containing topological charges as a function of trajectory index",
+)
+parser.add_argument(
+    "--Q_histogram", help="File containing histogram of topological charges"
+)
+plots.add_styles_arg(parser)
+plots.add_output_arg(parser)
+args = parser.parse_args()
 
-# Define the data file paths based on the flag
-data1_path = "./top_charges_b68-am08_with_index.txt"
-data2_path = "./top_charges_b68-am08.txt"
-if use_dp_flag:
-    data1_path = "./top_charges_b68-am08_with_index.txt"
-    data2_path = "./top_charges_b68-am08.txt"
+plots.set_styles(args)
+
 
 # Load data from first file
-data1 = np.loadtxt(data1_path)
+data1 = np.loadtxt(args.Q_history)
 x = data1[:, 0]
 y = data1[:, 1]
 
 # Create first plot
-fig, ax1 = plt.subplots(figsize=(6, 4))
-ax1.plot(x, y, label="$\\beta = 6.9, \, am_0 = 0.05$")
+fig, (ax1, ax2) = plt.subplots(
+    figsize=(3, 2), ncols=2, width_ratios=(2, 1), sharey=True
+)
+ax1.plot(x, y, label=r"$\beta = 6.9, \, am_0 = 0.05$")
 ax1.axhline(y=0, color="black", linestyle="-", linewidth=0.6)
-"""
-ax1.text(0.02, 0.98, r'$\langle Q_L \rangle$ = {:.3f}({:.0f})'.format(
-    np.mean(y), 1000 * np.std(y) / np.sqrt(10)),
-    transform=ax1.transAxes, fontsize=12, verticalalignment='top',
-    bbox=dict(facecolor='white', edgecolor='none', alpha=0.8))
-"""
+
 ax1.text(
     0.02,
     0.98,
     r"$\langle Q_L \rangle$ = -0.00084(81)",
     transform=ax1.transAxes,
-    fontsize=12,
     verticalalignment="top",
     bbox=dict(facecolor="white", edgecolor="none", alpha=0.8),
 )
 print(np.mean(y), np.std(y))
 print(np.mean(y), np.std(y))
-ax1.set_xlabel("Trajectories", fontsize=12)
-ax1.set_ylabel("$Q_L(w^2_0)$", fontsize=12)
-ax1.tick_params(axis="both", which="major", labelsize=12)
+ax1.set_xlabel("Trajectories")
+ax1.set_ylabel("$Q_L(w^2_0)$")
+ax1.tick_params(axis="both", which="major")
 ax1.set_ylim([-1.2 * np.max(np.abs(y)), 1.2 * np.max(np.abs(y))])
-ax1.legend(loc="lower left", fontsize=12, frameon=False)
+ax1.legend(loc="lower left", frameon=False)
 
 # Load data from second file
-data2 = np.loadtxt(data2_path)
+data2 = np.loadtxt(args.Q_histogram)
 # Normalize the data for histogram
 data2_norm = data2
 
 # Create second plot
-ax2 = fig.add_axes([0.65, 0.1, 0.3, 0.8])
 bin_range = (np.min(data2_norm), np.max(data2_norm))
 n, bins, patches = ax2.hist(
     data2_norm,
@@ -69,7 +69,7 @@ n, bins, patches = ax2.hist(
 for patch in patches:
     patch.set_linestyle("-")
     patch.set_linewidth(1)
-ax2.tick_params(axis="both", which="major", labelsize=11)
+ax2.tick_params(axis="both", which="major")
 ax2.spines["right"].set_visible(False)
 ax2.spines["top"].set_visible(False)
 ax2.set_ylim(ax1.get_ylim())
@@ -98,8 +98,5 @@ reduced_chi_square = chi_square / dof
 # Print the value of the reduced chi-square
 print("Reduced Chi-square:", reduced_chi_square)
 
-# Adjust subplots and show the plot
-fig.subplots_adjust(left=0.10, right=0.6, bottom=0.1, top=0.9)
-
 # Save the figure in PDF format with dpi=300 and specified size
-plt.savefig("./topological_charge_b68.pdf", dpi=300, bbox_inches="tight")
+plots.save_or_show(fig, args.output_file)

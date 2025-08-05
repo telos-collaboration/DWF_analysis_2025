@@ -1,3 +1,4 @@
+from argparse import ArgumentParser, FileType
 import re
 import os
 import numpy as np
@@ -196,12 +197,23 @@ def compute_autocorrelation_and_fit(data, tmax=8):
         return None, None
 
 
+parser = ArgumentParser(
+    description="Extracts scales from gradient flow histories for all ensembles and outputs resulting data to CSV"
+)
+parser.add_argument(
+    "--wf_dir",
+    required=True,
+    help="Top-level directory containing gradient flow histories",
+)
+parser.add_argument(
+    "--csv_file", type=FileType("w"), default="-", help="Output CSV file"
+)
+args = parser.parse_args()
+
+
 # Automatically detect the range for N and M
-root_directory = "./WF_cfgs/"
 ens_dirs = [
-    d
-    for d in os.listdir(root_directory)
-    if os.path.isdir(os.path.join(root_directory, d))
+    d for d in os.listdir(args.wf_dir) if os.path.isdir(os.path.join(args.wf_dir, d))
 ]
 N_range = sorted(
     set(int(d.split("_")[0][3:]) for d in ens_dirs if d.startswith("ens") and "_m" in d)
@@ -239,7 +251,7 @@ for N in N_range:
             step = 0.005
             beta = 6.7
 
-        directory = f"{root_directory}ens{N}_m{M}/"
+        directory = f"{args.wf_dir}/ens{N}_m{M}"
         if not os.path.exists(directory):
             print(f"Directory does not exist: {directory}")
             continue
@@ -251,12 +263,12 @@ for N in N_range:
             print(f"No input files found in directory: {directory}")
             continue
 
-        output_file_name = f"{directory}WF_b68_am-08_l8.txt"
+        output_file_name = f"{directory}/WF_b68_am-08_l8.txt"
         data_all = []
 
         # Process input files for the current ensemble
         process_input_files(
-            f"{directory}{input_files[0]}",
+            f"{directory}/{input_files[0]}",
             output_file_name,
             evolution_time,
             data_all,
@@ -323,8 +335,8 @@ for N in N_range:
         ]  # Ensure full paths
         process_files(
             input_files,
-            f"{directory}top_charges_b68-am08.txt",
-            f"{directory}top_charges_b68-am08_with_index.txt",
+            f"{directory}/top_charges_b68-am08.txt",
+            f"{directory}/top_charges_b68-am08_with_index.txt",
             1800,
         )
         tau, tau_error = compute_autocorrelation_and_fit(top_charge_numbers)
@@ -335,14 +347,12 @@ for N in N_range:
 
 
 # Write the results to a CSV file
-csv_file_path = "./CSVs/WF_measurements.csv"
-with open(csv_file_path, "w") as csv_file:
-    csv_file.write("directory,w_0,w_0_error,<Q>,<Q>_err,tau_Q,err_tau_Q\n")
-    for idx, row in enumerate(csv_results):
-        # Multiply WF value by (1/0.02) and cast it to integer
-        wf_value = row[1]
-        csv_file.write(
-            f"{row[0]},{wf_value},{row[2]:.2f},{avg_Q_array[idx][0]},{avg_Q_array[idx][1]},{tau_Q_array[idx][0]},{tau_Q_array[idx][1]}\n"
-        )
+args.csv_file.write("directory,w_0,w_0_error,<Q>,<Q>_err,tau_Q,err_tau_Q\n")
+for idx, row in enumerate(csv_results):
+    # Multiply WF value by (1/0.02) and cast it to integer
+    wf_value = row[1]
+    args.csv_file.write(
+        f"{row[0]},{wf_value},{row[2]:.2f},{avg_Q_array[idx][0]},{avg_Q_array[idx][1]},{tau_Q_array[idx][0]},{tau_Q_array[idx][1]}\n"
+    )
 
-print(f"WF measurements saved to {csv_file_path}")
+print(f"WF measurements saved to {args.csv_file.name}")

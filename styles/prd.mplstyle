@@ -1,3 +1,5 @@
+figure.constrained_layout.use: True
+
 text.usetex : True
 font.size : 9
 font.family : serif

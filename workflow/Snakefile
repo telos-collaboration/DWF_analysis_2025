@@ -1,0 +1,210 @@
+configfile: "config/config.yaml"
+
+
+CSVs = expand(
+    "data_assets/{name}.csv", name=["WF_measurements", "plateau_fits_results"]
+)
+plots = expand(
+    f"assets/plots/{{name}}{config['plot_filetype']}",
+    name=["chiral_aoverw0_vs_mPS", "fit_w0_mPS_mV"]
+    + expand(
+        "{prefix}_{beta_idx}",
+        prefix=[
+            "GMOR_w0m0_vs_w0m_PS",
+            "GMOR_w0m0_vs_w0fpi",
+            "GMOR_w0m0_vs_w0_m_PS_fpi",
+            "m0_vs_m_V_m_PS",
+            "NLO_mPS_w0_beta",
+        ],
+        beta_idx=config["beta_indices"],
+    ),
+)
+
+
+rule all:
+    input:
+        "assets/info.json" "data_assets/info.json",
+    default_target: True
+
+
+rule assets_stamp:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/provenance.py",
+        plots=plots,
+    output:
+        "assets/info.json",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} {input.plots} --output_file {output}"
+
+
+rule data_assets_stamp:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/provenance.py",
+        CSVs=CSVs,
+    output:
+        "data_assets/info.json",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} {input.plots} --output_file {output}"
+
+
+rule WF_and_Q:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/WF_and_Q.py",
+        data=glob_wildcards("WF_cfgs/*/wflow.*.out"),
+    output:
+        csv="data_assets/WF_measurements.csv",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --wf_dir {config[wf_dir]} --csv_file {output.csv}"
+
+
+rule spectrum_and_decay:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/spectrum_and_decay.py",
+        data=glob_wildcards("cfgs/ens*/*.xml"),
+    output:
+        csv="data_assets/plateau_fits_results.csv",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --correlator_dir {config[correlator_dir]} --csv_file {output.csv}"
+
+
+rule GMOR_plots:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/GMOR_and_mV_mPS_ratio.py",
+        spectrum_csv=rules.spectrum_and_decay.output.csv,
+        wf_csv=rules.WF_and_Q.output.csv,
+        plot_styles=config["plot_styles"],
+    output:
+        GMOR_mPS="assets/plots/GMOR_w0m0_vs_w0m_PS_{beta_idx}.{filetype}",
+        GMOR_fpi="assets/plots/GMOR_w0m0_vs_w0fpi_{beta_idx}.{filetype}",
+        GMOR_mPSfpi="assets/plots/GMOR_w0m0_vs_w0_m_PS_fpi_{beta_idx}.{filetype}",
+        bare="assets/plots/m0_vs_m_V_m_PS_{beta_idx}.{filetype}",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --plot_styles {input.plot_styles} --wf_results {input.wf_csv} --plateau_results {input.spectrum_csv} --beta_idx {wildcards.beta_idx} --correlator_dir_template {config[correlator_dir]}/ens{{N}}_m{{M}} --wf_dir_template {config[wf_dir]}/ens{{N}}_m{{M}} --output_file_GMOR_mPS {output.GMOR_mPS} --output_file_GMOR_fpi {output.GMOR_fpi} --output_file_GMOR_mPSfpi {output.GMOR_mPSfpi} --output_file_bare {output.bare}"
+
+
+rule NLO_w0_single_beta:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/NLO_w0_single.py",
+        spectrum_csv=rules.spectrum_and_decay.output.csv,
+        wf_csv=rules.WF_and_Q.output.csv,
+        plot_styles=config["plot_styles"],
+    output:
+        plot="assets/plots/NLO_mPS_w0_beta_{beta_idx}.{filetype}",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --plot_styles {input.plot_styles} --wf_results {input.wf_csv} --plateau_results {input.spectrum_csv} --beta_idx {wildcards.beta_idx} --correlator_dir_template {config[correlator_dir]}/ens{{N}}_m{{M}} --wf_dir_template {config[wf_dir]}/ens{{N}}_m{{M}} --output_file {output.plot}"
+
+
+rule NLO_w0_summary:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/NLO_w0.py",
+        spectrum_csv=rules.spectrum_and_decay.output.csv,
+        wf_csv=rules.WF_and_Q.output.csv,
+        plot_styles=config["plot_styles"],
+    output:
+        plot="assets/plots/chiral_aoverw0_vs_mPS.{filetype}",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --plot_styles {input.plot_styles} --wf_results {input.wf_csv} --plateau_results {input.spectrum_csv} --correlator_dir_template {config[correlator_dir]}/ens{{N}}_m{{M}} --wf_dir_template {config[wf_dir]}/ens{{N}}_m{{M}} --output_file {output.plot}"
+
+
+rule chiPT:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/perform_chiPT.py",
+        spectrum_csv=rules.spectrum_and_decay.output.csv,
+        wf_csv=rules.WF_and_Q.output.csv,
+        plot_styles=config["plot_styles"],
+    output:
+        plot="assets/plots/fit_w0_mPS_mV.{filetype}",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --plot_styles {input.plot_styles} --wf_results {input.wf_csv} --plateau_results {input.spectrum_csv} --output_file {output.plot}"
+
+
+rule plot_wflow_E:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/plot_WF_E.py",
+        parsed_flow="{subdir}/WF_b68_am-08_l8.txt",
+        plot_styles=config["plot_styles"],
+    output:
+        plot="{subdir}/flow_E.{filetype}",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} {input.parsed_flow} --plot_styles {input.plot_styles} --output_file {output.plot}"
+
+
+rule plot_wflow_W:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/plot_WF_W.py",
+        parsed_flow="{subdir}/WF_b68_am-08_l8_2.txt",
+        plot_styles=config["plot_styles"],
+    output:
+        plot="{subdir}/flow_W.{filetype}",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} {input.parsed_flow} --plot_styles {input.plot_styles} --output_file {output.plot}"
+
+
+rule plot_topological_charge:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/plot_topcharge.py",
+        Q_history="{subdir}/top_charges_b68-am08_with_index.txt",
+        Q_histogram="{subdir}/top_charges_b68-am08.txt",
+        plot_styles=config["plot_styles"],
+    output:
+        plot="{subdir}/topological_charge.{filetype}",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --plot_styles {input.plot_styles} --Q_history {input.Q_history} --Q_histogram {input.Q_histogram} --output_file {output.plot}"
+
+
+rule tabulate_spectrum:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/tabulate_spectrum.py",
+        spectrum_csv=rules.spectrum_and_decay.output.csv,
+    output:
+        tex="assets/tables/spectrum.tex",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} {input.spectrum_csv} --output_file {output.tex}"

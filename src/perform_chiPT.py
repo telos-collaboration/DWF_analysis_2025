@@ -1,9 +1,11 @@
+from argparse import ArgumentParser
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
-plt.style.use("paperdraft.mplstyle")
+from . import plots
 
 
 # Define the modified fitting function for mM_NLO with linear and quadratic terms in a
@@ -45,9 +47,17 @@ def perform_fit(data):
     return popt_mM, mM_errors, m2_PS, m2_PS_err, m2_V, m2_V_err
 
 
+parser = ArgumentParser(description="Plot GMOR and vector-pseudoscalar mass ratio")
+plots.add_styles_arg(parser)
+plots.add_output_arg(parser)
+plots.add_default_input_args(parser, dirs=False)
+args = parser.parse_args()
+
+plots.set_styles(args)
+
 # Load the data
-wf_measurements_data = pd.read_csv("./CSVs/WF_measurements.csv")
-plateau_fits_data = pd.read_csv("./CSVs/plateau_fits_results.csv")
+wf_measurements_data = pd.read_csv(args.wf_results)
+plateau_fits_data = pd.read_csv(args.plateau_results)
 
 data = pd.DataFrame(
     {
@@ -74,7 +84,7 @@ ensemble_config_sorted = dict(
 
 popt_mM, mM_errors, m2_PS, m2_PS_err, m2_V, m2_V_err = perform_fit(data)
 
-plt.figure(figsize=(6, 4))
+fig, ax = plt.subplots(figsize=(6, 4))
 
 for ens, params in ensemble_config_sorted.items():
     ensemble_data = data[data["name"].str.contains(ens)]
@@ -92,7 +102,7 @@ for ens, params in ensemble_config_sorted.items():
         * 7.0
     )
 
-    plt.errorbar(
+    ax.errorbar(
         m_PS_squared,
         m_V_squared,
         yerr=m_V_squared_err,
@@ -123,16 +133,14 @@ if not np.isnan(popt_mM[0]):
         "black",
         linestyle="--",
         linewidth=1.2,
-        label="Extrapolated fit (a = 0)",
+        label="Extrapolated fit ($a = 0$)",
     )
     plt.fill_between(
         m2_PS_range, m2_V_lower + shift, m2_V_upper + shift, color="gray", alpha=0.3
     )
 
 
-plt.xlabel("$(w_0 m_{\\rm PS})^2$", fontsize=15)
-plt.ylabel("$(w_0 m_{\\rm V})^2$", fontsize=15)
-plt.legend(fontsize=12)
-plt.tight_layout()
-plt.savefig("./plots/fit_w0_mPS_mV.pdf", dpi=130, bbox_inches="tight")
-plt.show()
+ax.set_xlabel("$(w_0 m_{\\rm PS})^2$", fontsize=15)
+ax.set_ylabel("$(w_0 m_{\\rm V})^2$", fontsize=15)
+ax.legend(fontsize=12, loc="best")
+plots.save_or_show(fig, args.output_file)

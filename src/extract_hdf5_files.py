@@ -41,27 +41,35 @@ def extract_w0(csv_path, directory):
     return pd.Series({"mean": mean, "error": error})
 
 
-def fill_array(plateau_fits_path, WF_measurements_path):
+def fill_array(
+    plateau_fits_path, WF_measurements_path, correlator_dir_template, wf_dir_template
+):
     data = []
     # Loop through N (first dimension) and M (second dimension)
     for N in range(1, 5):
         for M in range(1, 7):
-            # Specify directories
-            directory = f"cfgs/ens{N}_m{M}"
-            WF_directory = f"./WF_cfgs/ens{N}_m{M}/"
-
+            correlator_dir = correlator_dir_template.format(N=N, M=M)
+            wf_dir = wf_dir_template.format(N=N, M=M)
             # Extract data
             spectrum_channels = {
-                "PS": extract_spectrum_channel(plateau_fits_path, directory, "g0g5"),
-                "V": extract_spectrum_channel(plateau_fits_path, directory, "gi"),
-                "T": extract_spectrum_channel(plateau_fits_path, directory, "g0gi"),
-                "AV": extract_spectrum_channel(plateau_fits_path, directory, "g5gi"),
-                "AT": extract_spectrum_channel(plateau_fits_path, directory, "g0g5gi"),
-                "S": extract_spectrum_channel(plateau_fits_path, directory, "id"),
+                "PS": extract_spectrum_channel(
+                    plateau_fits_path, correlator_dir, "g0g5"
+                ),
+                "V": extract_spectrum_channel(plateau_fits_path, correlator_dir, "gi"),
+                "T": extract_spectrum_channel(
+                    plateau_fits_path, correlator_dir, "g0gi"
+                ),
+                "AV": extract_spectrum_channel(
+                    plateau_fits_path, correlator_dir, "g5gi"
+                ),
+                "AT": extract_spectrum_channel(
+                    plateau_fits_path, correlator_dir, "g0g5gi"
+                ),
+                "S": extract_spectrum_channel(plateau_fits_path, correlator_dir, "id"),
             }
-            fpi_data = extract_fpi(plateau_fits_path, directory)
-            ZA_data = extract_Z_A(plateau_fits_path, directory)
-            w0_data = extract_w0(WF_measurements_path, WF_directory)
+            fpi_data = extract_fpi(plateau_fits_path, correlator_dir)
+            ZA_data = extract_Z_A(plateau_fits_path, correlator_dir)
+            w0_data = extract_w0(WF_measurements_path, wf_dir)
 
             # Create a row of data for this combination of N and M
             row = {

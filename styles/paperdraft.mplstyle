@@ -1,3 +1,4 @@
+figure.constrained_layout.use: True
 text.usetex: True
 font.family: serif
 font.monospace: Computer Modern Roman

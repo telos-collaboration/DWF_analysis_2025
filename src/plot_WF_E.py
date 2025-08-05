@@ -1,26 +1,23 @@
-import argparse
+from argparse import ArgumentParser
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Activating text rendering by LaTeX
-plt.style.use("paperdraft.mplstyle")
+from . import plots
 
-# Parse command line arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("--dp", action="store_true", help="Use precomputed data path")
+parser = ArgumentParser(description="Plot a gradient flow history")
+parser.add_argument("datafile", help="Filename to read and plot")
+plots.add_styles_arg(parser)
+plots.add_output_arg(parser)
 args = parser.parse_args()
 
-# Determine data path prefix
-data_path_prefix = "./"
-if args.dp:
-    data_path_prefix = "./"
+plots.set_styles(args)
 
 # Load data from files
-data1 = np.loadtxt(data_path_prefix + "WF_b68_am-08_l8.txt")
+data1 = np.loadtxt(args.datafile)
 
 # Set up plot
-fig, ax = plt.subplots()
-ax.set_xlim(0, 4.7)
+fig, ax = plt.subplots(figsize=(4.5, 3.0))
 
 # Define line styles
 line_style1 = "purple"
@@ -28,22 +25,13 @@ line_style2 = "#29BCC1"
 line_style3 = "#4581A9"
 line_style4 = "orange"
 
-# Set the figure size
-fig = plt.figure(figsize=(4.5, 3.0))
-
-# Create axis object
-ax = fig.add_subplot(111)
-
 # Plot lines
 ax.plot(
     data1[:, 0], data1[:, 1], label="$\\beta = 6.7$", color=line_style1, linewidth=3.5
 )
 
-
-ax.set_xlabel("$t$", fontsize=15)
-ax.set_ylabel("${\cal E}(t)$", fontsize=15)
-
-ax.legend(loc="upper right", bbox_to_anchor=(2.15, 1.56), ncol=1)
+ax.set_xlabel("$t/a^2$")
+ax.set_ylabel(r"${\cal E}(t)$")
 
 # Add legend
 ax.legend(loc="best")
@@ -57,5 +45,4 @@ ax.fill_between(
     alpha=0.35,
 )
 
-
-plt.savefig("./WF_b68_am-08_l8.pdf", dpi=300, bbox_inches="tight")
+plots.save_or_show(fig, args.output_file)
