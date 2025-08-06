@@ -28,7 +28,7 @@ def compute_jackknife(data, bin_size):
 
 
 def process_input_files(
-    input_file_pattern, output_file_plaq, evolution_time, data_all, step
+    input_file_pattern, output_file_plaq, evolution_time, data_all, step, verbose
 ):
     print(f"Processing input file: {input_file_pattern}")
 
@@ -63,9 +63,10 @@ def process_input_files(
             error = compute_jackknife(np.array(data), bin_size)
             first_column = step + (i - 1) * step
             results.append(f"{first_column:.3f}\t{average:.4f}\t0\t{error:.4f}\n")
-            print(
-                f"Processed data for step {i}: Average={average:.4f}, Error={error:.4f}"
-            )
+            if verbose:
+                print(
+                    f"Processed data for step {i}: Average={average:.4f}, Error={error:.4f}"
+                )
 
     with open(output_file_plaq, "w") as output_file:
         output_file.writelines(results)
@@ -220,6 +221,11 @@ parser.add_argument(
     default="-",
     help="Where to output a CSV of w0, Q, etc.",
 )
+parser.add_argument(
+    "--verbose",
+    action="store_true",
+    help="Whether to print huge amounts of numerical output",
+)
 args = parser.parse_args()
 
 
@@ -235,6 +241,7 @@ process_input_files(
     evolution_time,
     data_all,
     args.step_length,
+    args.verbose,
 )
 
 # Compute jackknife derivatives
@@ -263,9 +270,10 @@ for i in range(1, len(data_all)):
             (args.step_length + (i - 1) * args.step_length) * error,
         )
     )
-    print(
-        f"Processed derivatives for interval {i}: Mean={mean_derivative:.4f}, Error={error:.4f}"
-    )
+    if args.verbose:
+        print(
+            f"Processed derivatives for interval {i}: Mean={mean_derivative:.4f}, Error={error:.4f}"
+        )
 
 # Write the results to the new file
 print(f"Writing derivatives to {args.output_file_W.name}...")
@@ -282,7 +290,8 @@ else:
 
 # Process top charge numbers for the current ensemble
 top_charge_numbers = process_top_charges(args.flow_filename, 100)
-print(f"Top charge numbers for ensemble {args.flow_filename}: {top_charge_numbers}")
+if args.verbose:
+    print(f"Top charge numbers for ensemble {args.flow_filename}: {top_charge_numbers}")
 bin_size2 = max(1, len(top_charge_numbers) // 10)
 avg_Q = np.mean(top_charge_numbers)
 error_avg_Q = compute_jackknife(top_charge_numbers, bin_size2)
