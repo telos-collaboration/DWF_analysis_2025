@@ -45,7 +45,7 @@ def format_columns(data):
 
 def main():
     args = get_args()
-    data = pd.read_csv(args.datafile)
+    data = pd.read_csv(args.datafile, comment="#")
     output_data(format_columns(data), args.output_file)
 
 

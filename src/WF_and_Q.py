@@ -5,7 +5,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 
-def compute_jackknife(data, bin_size, beta):
+def compute_jackknife(data, bin_size):
     """
     Compute the jackknife error given a list of data and bin size.
     """
@@ -28,7 +28,7 @@ def compute_jackknife(data, bin_size, beta):
 
 
 def process_input_files(
-    input_file_pattern, output_file_plaq, evolution_time, data_all, beta, step
+    input_file_pattern, output_file_plaq, evolution_time, data_all, step
 ):
     print(f"Processing input file: {input_file_pattern}")
 
@@ -60,7 +60,7 @@ def process_input_files(
         if data:
             average = np.mean(data)
             bin_size = max(1, len(data) // 10)
-            error = compute_jackknife(np.array(data), bin_size, beta)
+            error = compute_jackknife(np.array(data), bin_size)
             first_column = step + (i - 1) * step
             results.append(f"{first_column:.3f}\t{average:.4f}\t0\t{error:.4f}\n")
             print(
@@ -104,58 +104,38 @@ def find_closest_to_target(file_path, target=0.2815):
     return closest_row
 
 
-def process_top_charges(directory, top_charge_number):
-    input_files = [
-        f for f in os.listdir(directory) if f.endswith(".out") and "wflow." in f
-    ]
-    missing_files = []
-
-    for file in input_files:
-        file_path = os.path.join(directory, file)
-        if not os.path.exists(file_path):
-            missing_files.append(file)
-
-    if missing_files:
-        print(f"The following files are missing: {', '.join(missing_files)}")
-
+def process_top_charges(input_filename, top_charge_number):
     unique_numbers = set()  # Keep track of unique numbers seen so far
     numbers_in_order = []  # Keep track of the order in which numbers appear in the input files
 
-    for file in input_files:
-        file_path = os.path.join(directory, file)
-        if not os.path.exists(file_path):
-            continue  # Skip this file if it doesn't exist
-
-        with open(file_path, "r") as f_in:
-            for line in f_in:
-                if f"Top. charge           : {top_charge_number}" in line:
-                    number = float(line.split()[-1])
-                    if number not in unique_numbers:
-                        unique_numbers.add(number)
-                        numbers_in_order.append(number)
+    with open(input_filename, "r") as f_in:
+        for line in f_in:
+            if f"Top. charge           : {top_charge_number}" in line:
+                number = float(line.split()[-1])
+                if number not in unique_numbers:
+                    unique_numbers.add(number)
+                    numbers_in_order.append(number)
 
     return numbers_in_order
 
 
-def process_files(input_files, output_file, output_file_with_index, top_charge_number):
+def process_files(
+    input_filename, output_file, output_file_with_index, top_charge_number
+):
     unique_numbers = set()  # Keep track of unique numbers seen so far
     numbers_in_order = []  # Keep track of the order in which numbers appear in the input files
 
-    for file in input_files:
-        with open(file, "r") as f_in:
-            for line in f_in:
-                if f"Top. charge           : {top_charge_number}" in line:
-                    number = float(line.split()[-1])
-                    if number not in unique_numbers:
-                        unique_numbers.add(number)
-                        numbers_in_order.append(number)
+    with open(input_filename, "r") as f_in:
+        for line in f_in:
+            if f"Top. charge           : {top_charge_number}" in line:
+                number = float(line.split()[-1])
+                if number not in unique_numbers:
+                    unique_numbers.add(number)
+                    numbers_in_order.append(number)
 
-    with open(output_file, "w") as f_out, open(
-        output_file_with_index, "w"
-    ) as f_out_index:
-        for i, number in enumerate(numbers_in_order):
-            f_out.write(f"{number}\n")
-            f_out_index.write(f"{i + 1}\t{number}\n")
+    for i, number in enumerate(numbers_in_order):
+        output_file.write(f"{number}\n")
+        output_file_with_index.write(f"{i + 1}\t{number}\n")
 
 
 def compute_autocorrelation_and_fit(data, tmax=8):
@@ -201,158 +181,128 @@ parser = ArgumentParser(
     description="Extracts scales from gradient flow histories for all ensembles and outputs resulting data to CSV"
 )
 parser.add_argument(
-    "--wf_dir",
-    required=True,
-    help="Top-level directory containing gradient flow histories",
+    "flow_filename",
+    help="Log of gradient flow histories for the specified ensemble",
 )
 parser.add_argument(
-    "--csv_file", type=FileType("w"), default="-", help="Output CSV file"
+    "--tag", default="", help="Tag to distinguish ensemble in combined CSVs"
+)
+parser.add_argument(
+    "--step_length",
+    type=float,
+    required=True,
+    help="Step size between adjacent obsrvable measurements",
+)
+parser.add_argument(
+    "--output_file_t2E", default="/dev/stdout", help="Where to print history of t2E(t)"
+)
+parser.add_argument(
+    "--output_file_W",
+    type=FileType("w"),
+    default="-",
+    help="Where to print history of W(t)",
+)
+parser.add_argument(
+    "--output_file_Q_history",
+    type=FileType("w"),
+    default="-",
+    help="Where to print history of topological charge",
+)
+parser.add_argument(
+    "--output_file_Q_histogram",
+    type=FileType("w"),
+    default="-",
+    help="Where to print histogram of topological charge",
+)
+parser.add_argument(
+    "--output_file_summary",
+    type=FileType("w"),
+    default="-",
+    help="Where to output a CSV of w0, Q, etc.",
 )
 args = parser.parse_args()
 
 
-# Automatically detect the range for N and M
-ens_dirs = [
-    d for d in os.listdir(args.wf_dir) if os.path.isdir(os.path.join(args.wf_dir, d))
-]
-N_range = sorted(
-    set(int(d.split("_")[0][3:]) for d in ens_dirs if d.startswith("ens") and "_m" in d)
-)
-M_range = sorted(
-    set(int(d.split("_")[1][1:]) for d in ens_dirs if d.startswith("ens") and "_m" in d)
-)
-
 # Max Wilson Flow time
 evolution_time = 1800
 
-csv_results = []
+data_all = []
 
-avg_Q_array = []
-tau_Q_array = []
+# Process input files for the current ensemble
+process_input_files(
+    args.flow_filename,
+    args.output_file_t2E,
+    evolution_time,
+    data_all,
+    args.step_length,
+)
 
-step = 0.005
+# Compute jackknife derivatives
+print("Computing derivatives...")
+derivatives_all = []
+for i in range(1, len(data_all)):
+    # Skip empty lists to prevent broadcasting errors
+    if not data_all[i - 1] or not data_all[i]:
+        print(f"Skipping empty data sets at interval {i}")
+        continue
 
-for N in N_range:
-    for M in M_range:
-        if N == 1:
-            beta = 6.9
-            step = 0.005
-        elif N == 2:
-            beta = 7.2
-            step = 0.005
-            if M == 7 or M == 8:
-                step = 0.01
-        elif N == 3:
-            beta = 7.4
-            step = 0.005
-            if M == 8:
-                step = 0.01
-        elif N == 4:
-            step = 0.005
-            beta = 6.7
-
-        directory = f"{args.wf_dir}/ens{N}_m{M}"
-        if not os.path.exists(directory):
-            print(f"Directory does not exist: {directory}")
-            continue
-
-        input_files = [
-            f for f in os.listdir(directory) if f.endswith(".out") and "wflow" in f
-        ]
-        if not input_files:
-            print(f"No input files found in directory: {directory}")
-            continue
-
-        output_file_name = f"{directory}/WF_b68_am-08_l8.txt"
-        data_all = []
-
-        # Process input files for the current ensemble
-        process_input_files(
-            f"{directory}/{input_files[0]}",
-            output_file_name,
-            evolution_time,
-            data_all,
-            beta,
-            step,
+    derivatives = compute_derivatives(data_all[i - 1], data_all[i], args.step_length)
+    if len(derivatives) == 0:
+        continue
+    bin_size = max(1, len(derivatives) // 10)
+    error = compute_jackknife(
+        derivatives,
+        bin_size,
+    )
+    mean_derivative = np.mean(derivatives)
+    derivatives_all.append(
+        (
+            args.step_length + (i - 1) * args.step_length,
+            (args.step_length + i * args.step_length) * mean_derivative,
+            0,
+            (args.step_length + (i - 1) * args.step_length) * error,
         )
-
-        # Create new file names with '_2' suffix
-        output_file_name_2 = output_file_name.replace(".txt", "_2.txt")
-
-        # Compute jackknife derivatives
-        print("Computing derivatives...")
-        derivatives_all = []
-        for i in range(1, len(data_all)):
-            # Skip empty lists to prevent broadcasting errors
-            if not data_all[i - 1] or not data_all[i]:
-                print(f"Skipping empty data sets at interval {i}")
-                continue
-
-            derivatives = compute_derivatives(data_all[i - 1], data_all[i], step)
-            if len(derivatives) == 0:
-                continue
-            print("beta: ", beta)
-            bin_size = max(1, len(derivatives) // 10)
-            error = compute_jackknife(derivatives, bin_size, beta)
-            mean_derivative = np.mean(derivatives)
-            derivatives_all.append(
-                (
-                    step + (i - 1) * step,
-                    (step + i * step) * mean_derivative,
-                    0,
-                    (step + (i - 1) * step) * error,
-                )
-            )
-            print(
-                f"Processed derivatives for interval {i}: Mean={mean_derivative:.4f}, Error={error:.4f}"
-            )
-
-        # Write the results to the new file
-        with open(output_file_name_2, "w") as file_2:
-            print(f"Writing derivatives to {output_file_name_2}...")
-            file_2.writelines(
-                f"{line[0]:.3f}\t{line[1]}\t{line[2]}\t{line[3]}\n"
-                for line in derivatives_all
-            )
-
-        print(f"New file created with '_2' suffix: {output_file_name_2}")
-
-        # Find the closest value to 0.200
-        closest = find_closest_to_target(output_file_name_2)
-        if closest:
-            csv_results.append((directory, closest[0], 0.01))
-        # print(csv_results)
-        # Process top charge numbers for the current ensemble
-        top_charge_numbers = process_top_charges(directory, 100)
-        print(f"Top charge numbers for ensemble ens{N}_m{M}: {top_charge_numbers}")
-        bin_size2 = max(1, len(top_charge_numbers) // 10)
-        avg_Q = np.mean(top_charge_numbers)
-        error_avg_Q = compute_jackknife(top_charge_numbers, bin_size2, beta)
-        avg_Q_array.append([avg_Q, error_avg_Q])
-        # Now process files for top charges with index
-        input_files = [
-            os.path.join(directory, f) for f in input_files
-        ]  # Ensure full paths
-        process_files(
-            input_files,
-            f"{directory}/top_charges_b68-am08.txt",
-            f"{directory}/top_charges_b68-am08_with_index.txt",
-            1800,
-        )
-        tau, tau_error = compute_autocorrelation_and_fit(top_charge_numbers)
-        if tau is not None and tau_error is not None:
-            tau_Q_array.append([tau, tau_error])
-        else:
-            tau_Q_array.append([0.0, 0.0])  # Default or placeholder values
-
-
-# Write the results to a CSV file
-args.csv_file.write("directory,w_0,w_0_error,<Q>,<Q>_err,tau_Q,err_tau_Q\n")
-for idx, row in enumerate(csv_results):
-    # Multiply WF value by (1/0.02) and cast it to integer
-    wf_value = row[1]
-    args.csv_file.write(
-        f"{row[0]},{wf_value},{row[2]:.2f},{avg_Q_array[idx][0]},{avg_Q_array[idx][1]},{tau_Q_array[idx][0]},{tau_Q_array[idx][1]}\n"
+    )
+    print(
+        f"Processed derivatives for interval {i}: Mean={mean_derivative:.4f}, Error={error:.4f}"
     )
 
-print(f"WF measurements saved to {args.csv_file.name}")
+# Write the results to the new file
+print(f"Writing derivatives to {args.output_file_W.name}...")
+args.output_file_W.writelines(
+    f"{line[0]:.3f}\t{line[1]}\t{line[2]}\t{line[3]}\n" for line in derivatives_all
+)
+
+# Find the closest value to threshold value
+closest = find_closest_to_target(args.output_file_W.name)
+if closest:
+    wf_value = closest[0]
+else:
+    wf_value = None
+
+# Process top charge numbers for the current ensemble
+top_charge_numbers = process_top_charges(args.flow_filename, 100)
+print(f"Top charge numbers for ensemble {args.flow_filename}: {top_charge_numbers}")
+bin_size2 = max(1, len(top_charge_numbers) // 10)
+avg_Q = np.mean(top_charge_numbers)
+error_avg_Q = compute_jackknife(top_charge_numbers, bin_size2)
+# Now process files for top charges with index
+process_files(
+    args.flow_filename,
+    args.output_file_Q_histogram,
+    args.output_file_Q_history,
+    1800,
+)
+tau, tau_error = compute_autocorrelation_and_fit(top_charge_numbers)
+if tau is None or tau_error is None:
+    # Default or placeholder values
+    tau, tau_error = 0.0, 0.0
+
+# Write the results to a CSV file
+args.output_file_summary.write("directory,w_0,w_0_error,<Q>,<Q>_err,tau_Q,err_tau_Q\n")
+# Multiply WF value by (1/0.02) and cast it to integer
+args.output_file_summary.write(
+    f"{args.tag},{wf_value},0.01,{avg_Q},{error_avg_Q},{tau},{tau_error}\n"
+)
+
+print(f"WF measurements saved to {args.output_file_summary.name}")

@@ -1,6 +1,12 @@
 configfile: "config/config.yaml"
 
 
+from glob import glob
+import pandas as pd
+
+metadata = pd.read_csv(config["metadata"])
+
+
 CSVs = expand(
     "data_assets/{name}.csv", name=["WF_measurements", "plateau_fits_results"]
 )
@@ -55,18 +61,54 @@ rule data_assets_stamp:
         "python -m {params.module} {input.plots} --output_file {output}"
 
 
+def WF_logs(wildcards):
+    return glob(f"WF_cfgs/ens{wildcards.beta_idx}_m{wildcards.mass_idx}/wflow.*.out")
+
+
 rule WF_and_Q:
     params:
         module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+        metadata=lambda wildcards: lookup(
+            within=metadata,
+            query="beta_index == {beta_idx} & mass_index == {mass_idx}",
+        ),
     input:
         script="src/WF_and_Q.py",
-        data=glob_wildcards("WF_cfgs/*/wflow.*.out"),
+        data=WF_logs,
+    output:
+        t2E="intermediary_data/ens{beta_idx}_m{mass_idx}/t2E.csv",
+        W="intermediary_data/ens{beta_idx}_m{mass_idx}/W.csv",
+        Q_history="intermediary_data/ens{beta_idx}_m{mass_idx}/Q_history.csv",
+        Q_histogram="intermediary_data/ens{beta_idx}_m{mass_idx}/Q_histogram.csv",
+        summary="intermediary_data/ens{beta_idx}_m{mass_idx}/summary.csv",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} {input.data} --tag WF_cfgs/ens{wildcards.beta_idx}_m{wildcards.mass_idx} --step_length {params.metadata.gflow_step} --output_file_t2E {output.t2E} --output_file_W {output.W} --output_file_Q_history {output.Q_history} --output_file_Q_histogram {output.Q_histogram} --output_file_summary {output.summary}"
+
+
+def WF_csvs(wildcards):
+    return [
+        "intermediary_data/ens{beta_idx}_m{mass_idx}/summary.csv".format(
+            beta_idx=datum.beta_index, mass_idx=datum.mass_index
+        )
+        for datum in metadata.itertuples()
+        if datum.gflow_step > 0
+    ]
+
+
+rule combine_WF_Q:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/concatenate_csv.py",
+        data=WF_csvs,
     output:
         csv="data_assets/WF_measurements.csv",
     conda:
         "envs/basic-analysis.yml"
     shell:
-        "python -m {params.module} --wf_dir {config[wf_dir]} --csv_file {output.csv}"
+        "python -m {params.module} {input.data} --output_file {output.csv}"
 
 
 rule spectrum_and_decay:
@@ -89,7 +131,7 @@ rule GMOR_plots:
     input:
         script="src/GMOR_and_mV_mPS_ratio.py",
         spectrum_csv=rules.spectrum_and_decay.output.csv,
-        wf_csv=rules.WF_and_Q.output.csv,
+        wf_csv=rules.combine_WF_Q.output.csv,
         plot_styles=config["plot_styles"],
     output:
         GMOR_mPS="assets/plots/GMOR_w0m0_vs_w0m_PS_{beta_idx}.{filetype}",
@@ -108,7 +150,7 @@ rule NLO_w0_single_beta:
     input:
         script="src/NLO_w0_single.py",
         spectrum_csv=rules.spectrum_and_decay.output.csv,
-        wf_csv=rules.WF_and_Q.output.csv,
+        wf_csv=rules.combine_WF_Q.output.csv,
         plot_styles=config["plot_styles"],
     output:
         plot="assets/plots/NLO_mPS_w0_beta_{beta_idx}.{filetype}",
@@ -124,7 +166,7 @@ rule NLO_w0_summary:
     input:
         script="src/NLO_w0.py",
         spectrum_csv=rules.spectrum_and_decay.output.csv,
-        wf_csv=rules.WF_and_Q.output.csv,
+        wf_csv=rules.combine_WF_Q.output.csv,
         plot_styles=config["plot_styles"],
     output:
         plot="assets/plots/chiral_aoverw0_vs_mPS.{filetype}",
@@ -140,7 +182,7 @@ rule chiPT:
     input:
         script="src/perform_chiPT.py",
         spectrum_csv=rules.spectrum_and_decay.output.csv,
-        wf_csv=rules.WF_and_Q.output.csv,
+        wf_csv=rules.combine_WF_Q.output.csv,
         plot_styles=config["plot_styles"],
     output:
         plot="assets/plots/fit_w0_mPS_mV.{filetype}",
@@ -155,7 +197,7 @@ rule plot_wflow_E:
         module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
     input:
         script="src/plot_WF_E.py",
-        parsed_flow="{subdir}/WF_b68_am-08_l8.txt",
+        parsed_flow="{subdir}/t2E.csv",
         plot_styles=config["plot_styles"],
     output:
         plot="{subdir}/flow_E.{filetype}",
@@ -170,7 +212,7 @@ rule plot_wflow_W:
         module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
     input:
         script="src/plot_WF_W.py",
-        parsed_flow="{subdir}/WF_b68_am-08_l8_2.txt",
+        parsed_flow="{subdir}/W.csv",
         plot_styles=config["plot_styles"],
     output:
         plot="{subdir}/flow_W.{filetype}",
@@ -185,8 +227,8 @@ rule plot_topological_charge:
         module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
     input:
         script="src/plot_topcharge.py",
-        Q_history="{subdir}/top_charges_b68-am08_with_index.txt",
-        Q_histogram="{subdir}/top_charges_b68-am08.txt",
+        Q_history="{subdir}/Q_history.csv",
+        Q_histogram="{subdir}/Q_histogram.csv",
         plot_styles=config["plot_styles"],
     output:
         plot="{subdir}/topological_charge.{filetype}",

@@ -3,3 +3,4 @@ plot_styles: "styles/prd.mplstyle"
 correlator_dir: "cfgs"
 wf_dir: "WF_cfgs"
 beta_indices: [1, 2, 3, 4]
+metadata: "metadata/ensembles.csv"

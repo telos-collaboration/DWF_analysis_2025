@@ -2,7 +2,7 @@ import pandas as pd
 
 
 def extract_spectrum_channel(csv_path, directory, channel):
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, comment="#")
     row = df[df["name"] == directory]
     if row.empty:
         raise ValueError(f"Directory {directory} not found in the CSV.")
@@ -12,7 +12,7 @@ def extract_spectrum_channel(csv_path, directory, channel):
 
 
 def extract_fpi(csv_path, directory):
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, comment="#")
     row = df[df["name"] == directory]
     if row.empty:
         raise ValueError(f"Directory {directory} not found in the CSV.")
@@ -22,7 +22,7 @@ def extract_fpi(csv_path, directory):
 
 
 def extract_Z_A(csv_path, directory):
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, comment="#")
     row = df[df["name"] == directory]
     if row.empty:
         raise ValueError(f"Directory {directory} not found in the CSV.")
@@ -32,7 +32,7 @@ def extract_Z_A(csv_path, directory):
 
 
 def extract_w0(csv_path, directory):
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, comment="#")
     row = df[df["directory"] == directory]
     if row.empty:
         raise ValueError(f"Directory {directory} not found in the CSV.")

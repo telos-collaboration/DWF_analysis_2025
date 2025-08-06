@@ -56,8 +56,8 @@ args = parser.parse_args()
 plots.set_styles(args)
 
 # Load the data
-wf_measurements_data = pd.read_csv(args.wf_results)
-plateau_fits_data = pd.read_csv(args.plateau_results)
+wf_measurements_data = pd.read_csv(args.wf_results, comment="#")
+plateau_fits_data = pd.read_csv(args.plateau_results, comment="#")
 
 data = pd.DataFrame(
     {
