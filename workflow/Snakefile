@@ -116,13 +116,37 @@ rule spectrum_and_decay:
         module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
     input:
         script="src/spectrum_and_decay.py",
-        data=glob_wildcards("cfgs/ens*/*.xml"),
+        data=glob_wildcards("cfgs/ens{beta_idx}_m{mass_idx}/*.xml"),
+    output:
+        csv="intermediary_data/ens{beta_idx}_m{mass_idx}/spectrum.csv",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --correlator_dir {config[correlator_dir]}/ens{wildcards.beta_idx}_m{wildcards.mass_idx} --csv_file {output.csv}"
+
+
+def spectrum_csvs(wildcards):
+    return [
+        "intermediary_data/ens{beta_idx}_m{mass_idx}/spectrum.csv".format(
+            beta_idx=datum.beta_index, mass_idx=datum.mass_index
+        )
+        for datum in metadata.itertuples()
+        if datum.have_spectrum
+    ]
+
+
+rule combine_spectrum:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/concatenate_csv.py",
+        data=spectrum_csvs,
     output:
         csv="data_assets/plateau_fits_results.csv",
     conda:
         "envs/basic-analysis.yml"
     shell:
-        "python -m {params.module} --correlator_dir {config[correlator_dir]} --csv_file {output.csv}"
+        "python -m {params.module} {input.data} --output_file {output.csv}"
 
 
 rule GMOR_plots:
