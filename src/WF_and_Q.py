@@ -4,6 +4,8 @@ import os
 import numpy as np
 from scipy.optimize import curve_fit
 
+from .provenance import get_basic_metadata, text_metadata
+
 
 def compute_jackknife(data, bin_size):
     """
@@ -308,6 +310,7 @@ if tau is None or tau_error is None:
     tau, tau_error = 0.0, 0.0
 
 # Write the results to a CSV file
+print(text_metadata(get_basic_metadata()), file=args.output_file_summary)
 args.output_file_summary.write("directory,w_0,w_0_error,<Q>,<Q>_err,tau_Q,err_tau_Q\n")
 # Multiply WF value by (1/0.02) and cast it to integer
 args.output_file_summary.write(

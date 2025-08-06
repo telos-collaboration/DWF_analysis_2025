@@ -20,6 +20,7 @@ from .g5g5 import (
     read_g0g5_g5,
 )
 from . import corrutils as cu
+from .provenance import get_basic_metadata, text_metadata
 
 
 parser = ArgumentParser(
@@ -142,6 +143,7 @@ def jackknife_fit_error(fit_params):
 
 
 # Main script
+print(text_metadata(get_basic_metadata()), file=args.csv_file)
 writer = csv.writer(args.csv_file)
 writer.writerow(header)
 

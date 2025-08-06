@@ -24,7 +24,7 @@ def get_args():
 
 def main():
     args = get_args()
-    data = [pd.read_csv(filename) for filename in args.csv_files]
+    data = [pd.read_csv(filename, comment="#") for filename in args.csv_files]
     concatenated_data = pd.concat(data, ignore_index=True)
     print(text_metadata(get_basic_metadata()), file=args.output_file)
     print(concatenated_data.to_csv(index=False), file=args.output_file)
