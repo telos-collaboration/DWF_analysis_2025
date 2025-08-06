@@ -80,7 +80,7 @@ rule WF_and_Q:
         W="intermediary_data/ens{beta_idx}_m{mass_idx}/W.csv",
         Q_history="intermediary_data/ens{beta_idx}_m{mass_idx}/Q_history.csv",
         Q_histogram="intermediary_data/ens{beta_idx}_m{mass_idx}/Q_histogram.csv",
-        summary="intermediary_data/ens{beta_idx}_m{mass_idx}/summary.csv",
+        summary="intermediary_data/ens{beta_idx}_m{mass_idx}/WF_summary.csv",
     conda:
         "envs/basic-analysis.yml"
     shell:
@@ -89,7 +89,7 @@ rule WF_and_Q:
 
 def WF_csvs(wildcards):
     return [
-        "intermediary_data/ens{beta_idx}_m{mass_idx}/summary.csv".format(
+        "intermediary_data/ens{beta_idx}_m{mass_idx}/WF_summary.csv".format(
             beta_idx=datum.beta_index, mass_idx=datum.mass_index
         )
         for datum in metadata.itertuples()
