@@ -1,47 +1,46 @@
 from argparse import ArgumentParser
 
+from flow_analysis.readers import read_flows_grid
+from flow_analysis.measurements.scales import compute_t2E_t
+
 import matplotlib.pyplot as plt
-import numpy as np
 
 from . import plots
 
-parser = ArgumentParser(description="Plot a gradient flow history")
+parser = ArgumentParser(description="Plot the scale t2E(t) for a gradient flow history")
 parser.add_argument("datafile", help="Filename to read and plot")
 plots.add_styles_arg(parser)
 plots.add_output_arg(parser)
+parser.add_argument(
+    "--ensemble_label", default=None, help="Label to use in plot legend"
+)
 args = parser.parse_args()
 
 plots.set_styles(args)
 
 # Load data from files
-data1 = np.loadtxt(args.datafile)
+flows = read_flows_grid(args.datafile, check_consistency=False)
+t2E_value, t2E_error = compute_t2E_t(flows, operator="plaq")
 
 # Set up plot
 fig, ax = plt.subplots(figsize=(4.5, 3.0))
 
-# Define line styles
-line_style1 = "purple"
-line_style2 = "#29BCC1"
-line_style3 = "#4581A9"
-line_style4 = "orange"
-
 # Plot lines
-ax.plot(
-    data1[:, 0], data1[:, 1], label="$\\beta = 6.7$", color=line_style1, linewidth=3.5
-)
+ax.plot(flows.times, t2E_value, label=args.ensemble_label, color="C0", linewidth=3.5)
 
 ax.set_xlabel("$t/a^2$")
 ax.set_ylabel(r"${\cal E}(t)$")
+ax.set_title(args.ensemble_label)
 
 # Add legend
 ax.legend(loc="best")
 
 # Fill curves between lines
 ax.fill_between(
-    data1[:, 0],
-    data1[:, 1] - data1[:, 3],
-    data1[:, 1] + data1[:, 3],
-    color=line_style1,
+    flows.times,
+    t2E_value + t2E_error,
+    t2E_value - t2E_error,
+    color="C0",
     alpha=0.35,
 )
 

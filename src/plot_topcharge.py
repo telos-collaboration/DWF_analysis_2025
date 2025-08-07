@@ -1,102 +1,72 @@
 from argparse import ArgumentParser
 
-import numpy as np
+from flow_analysis.readers import read_flows_grid
+from flow_analysis.measurements.scales import measure_w0
+from flow_analysis.measurements.Q import Q_mean, flat_bin_Qs, Q_fit
+from flow_analysis.fit_forms import gaussian
+
 import matplotlib.pyplot as plt
-from scipy.stats import norm
+import numpy as np
 
 from . import plots
 
-parser = ArgumentParser(description="Plot GMOR and vector-pseudoscalar mass ratio")
-parser.add_argument(
-    "--Q_history",
-    help="File containing topological charges as a function of trajectory index",
-)
-parser.add_argument(
-    "--Q_histogram", help="File containing histogram of topological charges"
-)
+parser = ArgumentParser(description="Plot topological charge history and histogram")
+parser.add_argument("datafile", help="Filename to read and plot")
 plots.add_styles_arg(parser)
 plots.add_output_arg(parser)
+parser.add_argument(
+    "--ensemble_label", default=None, help="Label to use in plot legend"
+)
+parser.add_argument(
+    "--W0", type=float, default=0.28125, help="Reference scale for W0 computation"
+)
 args = parser.parse_args()
 
 plots.set_styles(args)
 
-
 # Load data from first file
-data1 = np.loadtxt(args.Q_history)
-x = data1[:, 0]
-y = data1[:, 1]
+flows = read_flows_grid(args.datafile, check_consistency=False)
+w0_squared = measure_w0(flows, args.W0, "plaq").nominal_value ** 2
 
 # Create first plot
-fig, (ax1, ax2) = plt.subplots(
+fig, (history_ax, histogram_ax) = plt.subplots(
     figsize=(3, 2), ncols=2, width_ratios=(2, 1), sharey=True
 )
-ax1.plot(x, y, label=r"$\beta = 6.9, \, am_0 = 0.05$")
-ax1.axhline(y=0, color="black", linestyle="-", linewidth=0.6)
 
-ax1.text(
+history_ax.plot(
+    flows.trajectories, flows.Q_history(w0_squared), label=args.ensemble_label
+)
+history_ax.axhline(y=0, color="black", linestyle="-", linewidth=0.6)
+
+history_ax.text(
     0.02,
     0.98,
-    r"$\langle Q_L \rangle$ = -0.00084(81)",
-    transform=ax1.transAxes,
+    f"$\\langle Q_L \\rangle$ = {Q_mean(flows, w0_squared)}",
+    transform=history_ax.transAxes,
     verticalalignment="top",
     bbox=dict(facecolor="white", edgecolor="none", alpha=0.8),
 )
-print(np.mean(y), np.std(y))
-print(np.mean(y), np.std(y))
-ax1.set_xlabel("Trajectories")
-ax1.set_ylabel("$Q_L(w^2_0)$")
-ax1.tick_params(axis="both", which="major")
-ax1.set_ylim([-1.2 * np.max(np.abs(y)), 1.2 * np.max(np.abs(y))])
-ax1.legend(loc="lower left", frameon=False)
+history_ax.set_xlabel("Trajectories")
+history_ax.set_ylabel("$Q_L(w^2_0)$")
+history_ax.tick_params(axis="both", which="major")
+history_ax.legend(loc="lower left", frameon=False)
 
-# Load data from second file
-data2 = np.loadtxt(args.Q_histogram)
-# Normalize the data for histogram
-data2_norm = data2
+top_charge_range, top_charge_counts = flat_bin_Qs(flows, w0_squared)
+histogram_ax.step(top_charge_counts, top_charge_range, label="Histogram")
 
-# Create second plot
-bin_range = (np.min(data2_norm), np.max(data2_norm))
-n, bins, patches = ax2.hist(
-    data2_norm,
-    bins=8,
-    range=bin_range,
-    orientation="horizontal",
-    density=True,
-    linewidth=0.5,
-    color="white",
-    edgecolor="darkblue",
+amplitude, fitted_top_charge, sigma = Q_fit(flows, w0_squared, with_amplitude=True)
+smooth_top_charge_range = np.linspace(
+    min(top_charge_range) - 0.5, max(top_charge_range) + 0.5, 1000
 )
-for patch in patches:
-    patch.set_linestyle("-")
-    patch.set_linewidth(1)
-ax2.tick_params(axis="both", which="major")
-ax2.spines["right"].set_visible(False)
-ax2.spines["top"].set_visible(False)
-ax2.set_ylim(ax1.get_ylim())
-ax2.set_yticklabels([])
-ax2.tick_params(axis="x", which="major", bottom=False, labelbottom=False)
-
-# Fit histogram with normal distribution
-mu, std = norm.fit(data2_norm)
-x_fit = np.linspace(bin_range[0], bin_range[1], 100)
-p_fit = norm.pdf(x_fit, mu, std)
-ax2.plot(p_fit, x_fit, "r-", linewidth=2)
-
-# Set y limits for the fit line
-ymin, ymax = ax2.get_ylim()
-y_fit = np.linspace(ymin, ymax, 100)
-x_fit_range = norm.pdf(y_fit, mu, std)
-ax2.plot(x_fit_range, y_fit, color="orange", linestyle="-", linewidth=2)
-
-# Calculate the reduced chi-square
-chi_square = np.sum(
-    ((data2_norm - norm.pdf(data2_norm, mu, std)) / np.std(data2_norm)) ** 2
+histogram_ax.plot(
+    gaussian(
+        smooth_top_charge_range,
+        amplitude.nominal_value,
+        fitted_top_charge.nominal_value,
+        sigma.nominal_value,
+    ),
+    smooth_top_charge_range,
+    label="Fit",
 )
-dof = len(data2_norm) - 3  # Degrees of freedom
-reduced_chi_square = chi_square / dof
 
-# Print the value of the reduced chi-square
-print("Reduced Chi-square:", reduced_chi_square)
-
-# Save the figure in PDF format with dpi=300 and specified size
 plots.save_or_show(fig, args.output_file)

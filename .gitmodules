@@ -1,0 +1,3 @@
+[submodule "libs/flow_analysis"]
+	path = libs/flow_analysis
+	url = https://github.com/edbennett/flow_analysis
