@@ -1,6 +1,6 @@
 from argparse import ArgumentParser, FileType
 
-from flow_analysis.readers import read_flows_grid
+from flow_analysis.readers import readers
 from flow_analysis.measurements.scales import measure_w0
 from flow_analysis.measurements.Q import Q_mean
 from flow_analysis.stats.autocorrelation import exp_autocorrelation_fit
@@ -23,12 +23,18 @@ def get_args():
     parser.add_argument(
         "--W0", type=float, default=0.28125, help="Reference scale for W0 computation"
     )
+    parser.add_argument(
+        "--fileformat",
+        default="grid",
+        choices=["grid", "hirep"],
+        help="File format logs are in",
+    )
     return parser.parse_args()
 
 
 def write_output(output_file, tag, w0, top_charge, tau_exp_Q):
     print(text_metadata(get_basic_metadata()), file=output_file)
-    print("directory,w_0,w_0_error,<Q>,<Q>_err,tau_Q,err_tau_Q", file=output_file)
+    print("name,w_0,w_0_error,<Q>,<Q>_err,tau_Q,err_tau_Q", file=output_file)
     print(
         ",".join(
             map(
@@ -50,7 +56,7 @@ def write_output(output_file, tag, w0, top_charge, tau_exp_Q):
 
 def main():
     args = get_args()
-    flows = read_flows_grid(args.flow_filename, check_consistency=False)
+    flows = readers[args.fileformat](args.flow_filename, check_consistency=False)
     w0 = measure_w0(flows, args.W0, operator="plaq")
     top_charge = Q_mean(flows, w0.nominal_value**2)
     tau_exp_Q = exp_autocorrelation_fit(flows.Q_history(w0.nominal_value**2))

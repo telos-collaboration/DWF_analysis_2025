@@ -33,7 +33,7 @@ def extract_Z_A(csv_path, directory):
 
 def extract_w0(csv_path, directory):
     df = pd.read_csv(csv_path, comment="#")
-    row = df[df["directory"] == directory]
+    row = df[df["name"] == directory]
     if row.empty:
         raise ValueError(f"Directory {directory} not found in the CSV.")
     mean = row["w_0"].values[0]

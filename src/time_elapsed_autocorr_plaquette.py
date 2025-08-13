@@ -196,13 +196,10 @@ def get_ensemble_label(datum, metadata):
 
 
 def get_ensemble_data(ensemble_key, data):
-    for key in ["directory", "name"]:
-        if key in data.keys():
-            break
-    else:
-        raise ValueError(f"Key column not found in {data}")
+    if "name" not in data.keys():
+        raise ValueError(f"'name' column not found in {data}")
 
-    result = data[data[key].str.endswith(ensemble_key)]
+    result = data[data["name"].str.endswith(ensemble_key)]
     if len(result) != 1:
         raise ValueError(f"Unique datum not found for {ensemble_key} in {data}")
 

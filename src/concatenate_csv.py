@@ -1,4 +1,5 @@
 from argparse import ArgumentParser, FileType
+from collections import defaultdict
 
 import pandas as pd
 
@@ -22,12 +23,27 @@ def get_args():
     return parser.parse_args()
 
 
+def concatenate(data):
+    grouped_data = defaultdict(list)
+    for datum in data:
+        grouped_data[tuple(datum.columns)].append(datum)
+
+    disjoint_data = [
+        pd.concat(dataset).set_index("name") for dataset in grouped_data.values()
+    ]
+    if len(disjoint_data) == 0:
+        return pd.DataFrame()
+    if len(disjoint_data) == 1:
+        return disjoint_data[0]
+    return disjoint_data[0].join(disjoint_data[1:])
+
+
 def main():
     args = get_args()
     data = [pd.read_csv(filename, comment="#") for filename in args.csv_files]
-    concatenated_data = pd.concat(data, ignore_index=True)
+    concatenated_data = concatenate(data)
     print(text_metadata(get_basic_metadata()), file=args.output_file)
-    print(concatenated_data.to_csv(index=False), file=args.output_file)
+    print(concatenated_data.to_csv(), file=args.output_file)
 
 
 if __name__ == "__main__":

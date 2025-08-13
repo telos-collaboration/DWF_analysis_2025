@@ -4,6 +4,10 @@ configfile: "config/config.yaml"
 from glob import glob
 import pandas as pd
 
+
+include: "rules/wilson.smk"
+
+
 metadata = pd.read_csv(config["metadata"])
 
 CSVs = expand(
@@ -77,7 +81,7 @@ rule WF_and_Q:
     conda:
         "envs/basic-analysis.yml"
     shell:
-        "python -m {params.module} {input.data} --tag {config[flow_dir]}/ens{wildcards.beta_idx}_m{wildcards.mass_idx} --output_file {output.summary} --W0 {config[W0]}"
+        "python -m {params.module} {input.data} --tag {config[wf_dir]}/ens{wildcards.beta_idx}_m{wildcards.mass_idx} --output_file {output.summary} --W0 {config[W0]}"
 
 
 def WF_csvs(wildcards):
@@ -184,15 +188,16 @@ rule NLO_w0_summary:
         module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
     input:
         script="src/NLO_w0.py",
-        spectrum_csv=rules.spectrum_and_decay.output.csv,
+        spectrum_csv=rules.combine_spectrum.output.csv,
         wf_csv=rules.combine_WF_Q.output.csv,
         plot_styles=config["plot_styles"],
+        wilson_csv=rules.combine_wilson_csvs.output.csv,
     output:
         plot="assets/plots/chiral_aoverw0_vs_mPS.{filetype}",
     conda:
         "envs/basic-analysis.yml"
     shell:
-        "python -m {params.module} --plot_styles {input.plot_styles} --wf_results {input.wf_csv} --plateau_results {input.spectrum_csv} --correlator_dir_template {config[correlator_dir]}/ens{{N}}_m{{M}} --wf_dir_template {config[wf_dir]}/ens{{N}}_m{{M}} --output_file {output.plot}"
+        "python -m {params.module} --plot_styles {input.plot_styles} --wf_results {input.wf_csv} --plateau_results {input.spectrum_csv} --correlator_dir_template {config[correlator_dir]}/ens{{N}}_m{{M}} --wf_dir_template {config[wf_dir]}/ens{{N}}_m{{M}} --wilson_results {input.wilson_csv} --output_file {output.plot}"
 
 
 rule chiPT:

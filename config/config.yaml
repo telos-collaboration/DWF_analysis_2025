@@ -5,3 +5,6 @@ wf_dir: "data/mdwf/flow_histories"
 beta_indices: [1, 2, 3, 4]
 metadata: "metadata/ensembles.csv"
 W0: 0.28125
+
+wilson_metadata: "metadata/wilson_ensembles.yaml"
+wilson_data_dir: "data/wilson"
