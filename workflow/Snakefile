@@ -61,7 +61,9 @@ rule data_assets_stamp:
 
 
 def WF_logs(wildcards):
-    return glob(f"WF_cfgs/ens{wildcards.beta_idx}_m{wildcards.mass_idx}/wflow.*.out")
+    return glob(
+        f"{config['wf_dir']}/ens{wildcards.beta_idx}_m{wildcards.mass_idx}/wflow.*.out"
+    )
 
 
 rule WF_and_Q:
@@ -71,16 +73,16 @@ rule WF_and_Q:
         script="src/WF_and_Q.py",
         data=WF_logs,
     output:
-        summary="intermediary_data/ens{beta_idx}_m{mass_idx}/WF_summary.csv",
+        summary="intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/WF_summary.csv",
     conda:
         "envs/basic-analysis.yml"
     shell:
-        "python -m {params.module} {input.data} --tag WF_cfgs/ens{wildcards.beta_idx}_m{wildcards.mass_idx} --output_file {output.summary} --W0 {config[W0]}"
+        "python -m {params.module} {input.data} --tag {config[flow_dir]}/ens{wildcards.beta_idx}_m{wildcards.mass_idx} --output_file {output.summary} --W0 {config[W0]}"
 
 
 def WF_csvs(wildcards):
     return [
-        "intermediary_data/ens{beta_idx}_m{mass_idx}/WF_summary.csv".format(
+        "intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/WF_summary.csv".format(
             beta_idx=datum.beta_index, mass_idx=datum.mass_index
         )
         for datum in metadata.itertuples()
@@ -107,9 +109,11 @@ rule spectrum_and_decay:
         module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
     input:
         script="src/spectrum_and_decay.py",
-        data=glob_wildcards("cfgs/ens{beta_idx}_m{mass_idx}/*.xml"),
+        data=glob_wildcards(
+            f"{params['correlator_dir']}/ens{{beta_idx}}_m{{mass_idx}}/*.xml"
+        ),
     output:
-        csv="intermediary_data/ens{beta_idx}_m{mass_idx}/spectrum.csv",
+        csv="intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/spectrum.csv",
     conda:
         "envs/basic-analysis.yml"
     shell:
@@ -118,7 +122,7 @@ rule spectrum_and_decay:
 
 def spectrum_csvs(wildcards):
     return [
-        "intermediary_data/ens{beta_idx}_m{mass_idx}/spectrum.csv".format(
+        "intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/spectrum.csv".format(
             beta_idx=datum.beta_index, mass_idx=datum.mass_index
         )
         for datum in metadata.itertuples()
@@ -224,7 +228,7 @@ rule plot_wflow_E:
         data=WF_logs,
         plot_styles=config["plot_styles"],
     output:
-        plot="intermediary_data/ens{beta_idx}_m{mass_idx}/E_flow.{filetype}",
+        plot="intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/E_flow.{filetype}",
     conda:
         "envs/basic-analysis.yml"
     shell:
@@ -240,7 +244,7 @@ rule plot_wflow_W:
         data=WF_logs,
         plot_styles=config["plot_styles"],
     output:
-        plot="intermediary_data/ens{beta_idx}_m{mass_idx}/W_flow.{filetype}",
+        plot="intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/W_flow.{filetype}",
     conda:
         "envs/basic-analysis.yml"
     shell:
@@ -256,7 +260,7 @@ rule plot_topological_charge:
         data=WF_logs,
         plot_styles=config["plot_styles"],
     output:
-        plot="intermediary_data/ens{beta_idx}_m{mass_idx}/Q_history.{filetype}",
+        plot="intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/Q_history.{filetype}",
     conda:
         "envs/basic-analysis.yml"
     shell:
@@ -283,7 +287,7 @@ rule timing_plot:
         module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
     input:
         script="src/time_elapsed_autocorr_plaquette.py",
-        data=glob_wildcards("hmc_logs/hmc_*.out"),
+        data=glob_wildcards("data/mdwf/hmc_logs/hmc_*.out"),
         metadata="metadata/ensembles.csv",
         spectrum_results="data_assets/plateau_fits_results.csv",
         wflow_results="data_assets/WF_measurements.csv",

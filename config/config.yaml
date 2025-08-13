@@ -1,7 +1,7 @@
 plot_filetype: ".pdf"
 plot_styles: "styles/prd.mplstyle"
-correlator_dir: "cfgs"
-wf_dir: "WF_cfgs"
+correlator_dir: "data/mdwf/correlators"
+wf_dir: "data/mdwf/flow_histories"
 beta_indices: [1, 2, 3, 4]
 metadata: "metadata/ensembles.csv"
 W0: 0.28125
