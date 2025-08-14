@@ -114,7 +114,7 @@ rule spectrum_and_decay:
     input:
         script="src/spectrum_and_decay.py",
         data=glob_wildcards(
-            f"{params['correlator_dir']}/ens{{beta_idx}}_m{{mass_idx}}/*.xml"
+            f"{config['correlator_dir']}/ens{{beta_idx}}_m{{mass_idx}}/*.xml"
         ),
     output:
         csv="intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/spectrum.csv",
