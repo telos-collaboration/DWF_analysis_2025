@@ -81,7 +81,7 @@ rule WF_and_Q:
     conda:
         "envs/basic-analysis.yml"
     shell:
-        "python -m {params.module} {input.data} --tag {config[wf_dir]}/ens{wildcards.beta_idx}_m{wildcards.mass_idx} --output_file {output.summary} --W0 {config[W0]}"
+        "python -m {params.module} {input.data} --tag ens{wildcards.beta_idx}_m{wildcards.mass_idx} --output_file {output.summary} --W0 {config[W0]}"
 
 
 def WF_csvs(wildcards):

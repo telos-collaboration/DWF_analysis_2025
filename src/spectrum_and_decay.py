@@ -62,14 +62,6 @@ header = [
 ]
 
 
-# Extract (N, M) from subdirectory names
-def extract_N_M(subdir_name):
-    match = re.search(r"ens(\d+)_m(\d+)", subdir_name)
-    if match:
-        return int(match.group(1)), int(match.group(2))
-    return float("inf"), float("inf")
-
-
 # Extract correlators from XML files
 def extract_correlators(file_path, gamma_snk, gamma_src):
     import xml.etree.ElementTree as ET
@@ -355,7 +347,7 @@ if plateau:
 
 # Write the results for this subdirectory
 results = [
-    args.correlator_dir,
+    args.correlator_dir.split("/")[-1],
     mean_plateau_g5g5,
     error_plateau_g5g5,
     mean_plateau_g0g5,
