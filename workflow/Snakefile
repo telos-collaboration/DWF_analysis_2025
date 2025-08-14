@@ -352,14 +352,11 @@ rule timing_plot:
         module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
     input:
         script="src/time_elapsed_autocorr_plaquette.py",
-        data=glob_wildcards("data/mdwf/hmc_logs/hmc_*.out"),
-        metadata="metadata/ensembles.csv",
-        spectrum_results="data_assets/plateau_fits_results.csv",
-        wflow_results="data_assets/WF_measurements.csv",
+        data=rules.combined_mobius_csv.output.csv,
         plot_styles=config["plot_styles"],
     output:
         plot="assets/plots/time_plot_plaquette.{filetype}",
     conda:
         "envs/basic-analysis.yml"
     shell:
-        "python -m {params.module} {input.data} --plot_styles {input.plot_styles} --output_file {output.plot} --skip 1 --metadata_csv {input.metadata} --spectrum_csv {input.spectrum_results} --wflow_csv {input.wflow_results}"
+        "python -m {params.module} --data {input.data} --plot_styles {input.plot_styles} --output_file {output.plot}"
