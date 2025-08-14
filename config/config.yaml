@@ -1,6 +1,7 @@
 plot_filetype: ".pdf"
 plot_styles: "styles/prd.mplstyle"
 correlator_dir: "data/mdwf/correlators"
+hmc_dir: "data/mdwf/hmc_logs"
 wf_dir: "data/mdwf/flow_histories"
 beta_indices: [1, 2, 3, 4]
 metadata: "metadata/ensembles.csv"

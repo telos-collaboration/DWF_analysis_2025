@@ -286,6 +286,66 @@ rule tabulate_spectrum:
         "python -m {params.module} {input.spectrum_csv} --output_file {output.tex}"
 
 
+def hmc_logs(wildcards):
+    return glob(
+        f"{config['hmc_dir']}/ens{wildcards.beta_idx}_m{wildcards.mass_idx}/hmc_*.out"
+    )
+
+
+rule hmc_timing:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/hmc_timing.py",
+        logs=hmc_logs,
+    output:
+        csv="intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/timing.csv",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} {input.logs} --output_file {output.csv} --tag ens{wildcards.beta_idx}_m{wildcards.mass_idx}"
+
+
+def hmc_csvs(wildcards):
+    return [
+        "intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/timing.csv".format(
+            beta_idx=datum.beta_index, mass_idx=datum.mass_index
+        )
+        for datum in metadata.itertuples()
+        if datum.have_hmc
+    ]
+
+
+rule combine_hmc:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/concatenate_csv.py",
+        data=hmc_csvs,
+    output:
+        csv="data_assets/hmc_timing_results.csv",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} {input.data} --output_file {output.csv}"
+
+
+rule combined_mobius_csv:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/concatenate_csv.py",
+        hmc=rules.combine_hmc.output.csv,
+        wflow=rules.combine_WF_Q.output.csv,
+        spectrum=rules.combine_spectrum.output.csv,
+    output:
+        csv="data_assets/mobius_results.csv",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} {input.hmc} {input.wflow} {input.spectrum} --output_file {output.csv}"
+
+
 # TODO Test and fix
 rule timing_plot:
     params:
