@@ -12,21 +12,19 @@ parser = ArgumentParser(description="Plot GMOR and vector-pseudoscalar mass rati
 plots.add_styles_arg(parser)
 plots.add_output_arg(parser)
 parser.add_argument(
-    "--beta_idx", type=int, required=True, help="Beta index of ensemble subset to use"
+    "--beta", type=int, required=True, help="Beta index of ensemble subset to use"
 )
-plots.add_default_input_args(parser)
+parser.add_argument(
+    "--data",
+    required=True,
+    help="CSV file containing spectrum, gradient flow, and HMC timing results",
+)
 args = parser.parse_args()
 
 plots.set_styles(args)
 
 # Extract data into a Pandas DataFrame
-data = fill_array(
-    args.plateau_results,
-    args.wf_results,
-    args.correlator_dir_template,
-    args.wf_dir_template,
-)
-df = pd.DataFrame(data)
+df = pd.read_csv(args.data, comment="#")
 
 # Define color cycle
 CB_color_cycle = [
@@ -42,12 +40,12 @@ CB_color_cycle = [
 ]
 
 # Filter the DataFrame for N = 1
-df_filtered = df[df["N"] == args.beta_idx]
+df_filtered = df[df["beta"] == args.beta]
 # Extract the relevant columns for all M
-m_PS = df_filtered["m_PS"].values
-m_PS_err = df_filtered["m_PS_err"].values
-w0 = df_filtered["w0"].values
-w0_err = df_filtered["w0_err"].values
+m_PS = df_filtered["g0g5"].values
+m_PS_err = df_filtered["g0g5_err"].values
+w0 = df_filtered["w_0"].values
+w0_err = df_filtered["w_0_err"].values
 # Compute x = m_PS * w0 and propagate errors
 x = (m_PS * w0) ** 2  # Use x^2 instead of x
 err_x = (

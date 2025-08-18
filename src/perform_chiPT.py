@@ -50,57 +50,36 @@ def perform_fit(data):
 parser = ArgumentParser(description="Plot GMOR and vector-pseudoscalar mass ratio")
 plots.add_styles_arg(parser)
 plots.add_output_arg(parser)
-plots.add_default_input_args(parser, dirs=False)
+plots.add_default_input_args(parser)
 args = parser.parse_args()
 
 plots.set_styles(args)
 
 # Load the data
-wf_measurements_data = pd.read_csv(args.wf_results, comment="#")
-plateau_fits_data = pd.read_csv(args.plateau_results, comment="#")
+data = pd.read_csv(args.data, comment="#")
 
 data = pd.DataFrame(
     {
-        "a": 1 / wf_measurements_data["w_0"],
-        "a_err": wf_measurements_data["w_0_error"] / (wf_measurements_data["w_0"] ** 2),
-        "m_PS": plateau_fits_data["g0g5"],
-        "m_PS_err": plateau_fits_data["g0g5_err"],
-        "m_V": plateau_fits_data["gi"],
-        "m_V_err": plateau_fits_data["gi_err"],
-        "name": plateau_fits_data["name"],
+        "a": 1 / data["w_0"],
+        "a_err": data["w_0_error"] / data["w_0"] ** 2,
+        "m_PS": data["g0g5"],
+        "m_PS_err": data["g0g5_err"],
+        "m_V": data["gi"],
+        "m_V_err": data["gi_err"],
+        "name": data["name"],
     }
-)
-
-
-ensemble_config = {
-    "ens1": {"beta": 6.9, "color": "green"},
-    "ens2": {"beta": 7.2, "color": "red"},
-    "ens3": {"beta": 7.4, "color": "purple"},
-    "ens4": {"beta": 6.7, "color": "blue"},
-}
-ensemble_config_sorted = dict(
-    sorted(ensemble_config.items(), key=lambda x: x[1]["beta"])
 )
 
 popt_mM, mM_errors, m2_PS, m2_PS_err, m2_V, m2_V_err = perform_fit(data)
 
 fig, ax = plt.subplots(figsize=(6, 4))
 
-for ens, params in ensemble_config_sorted.items():
-    ensemble_data = data[data["name"].str.contains(ens)]
-    m_PS_squared = (wf_measurements_data["w_0"] * ensemble_data["m_PS"]) ** 2
-    m_V_squared = (wf_measurements_data["w_0"] * ensemble_data["m_V"]) ** 2
-    m_PS_squared_err = (
-        2
-        * (wf_measurements_data["w_0"] * ensemble_data["m_PS"])
-        * ensemble_data["m_PS_err"]
-    )
-    m_V_squared_err = (
-        2
-        * (wf_measurements_data["w_0"] * ensemble_data["m_V"])
-        * ensemble_data["m_V_err"]
-        * 7.0
-    )
+for colour_index, beta in sorted(set(data["beta"])):
+    subset = data[data["beta"] == beta]
+    m_PS_squared = (subset["w_0"] * subset["m_PS"]) ** 2
+    m_V_squared = (subset["w_0"] * subset["m_V"]) ** 2
+    m_PS_squared_err = 2 * (subset["w_0"] * subset["m_PS"]) * subset["m_PS_err"]
+    m_V_squared_err = 2 * (subset["w_0"] * subset["m_V"]) * subset["m_V_err"] * 7.0
 
     ax.errorbar(
         m_PS_squared,
@@ -108,8 +87,8 @@ for ens, params in ensemble_config_sorted.items():
         yerr=m_V_squared_err,
         xerr=m_PS_squared_err,
         fmt="o",
-        color=params["color"],
-        label=f"$\\beta = {params['beta']}$",
+        color=f"C{colour_index}",
+        label=f"$\\beta = {beta}$",
         elinewidth=1.3,
         markersize=6.1,
         markeredgecolor="black",

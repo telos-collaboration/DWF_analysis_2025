@@ -17,7 +17,7 @@ plots = expand(
     f"assets/plots/{{name}}{config['plot_filetype']}",
     name=["chiral_aoverw0_vs_mPS", "fit_w0_mPS_mV"]
     + expand(
-        "{prefix}_{beta_idx}",
+        "{prefix}_{beta}",
         prefix=[
             "GMOR_w0m0_vs_w0m_PS",
             "GMOR_w0m0_vs_w0fpi",
@@ -25,7 +25,7 @@ plots = expand(
             "m0_vs_m_V_m_PS",
             "NLO_mPS_w0_beta",
         ],
-        beta_idx=config["beta_indices"],
+        beta=set(metadata["beta"]),
     ),
 )
 
@@ -65,9 +65,7 @@ rule data_assets_stamp:
 
 
 def WF_logs(wildcards):
-    return glob(
-        f"{config['wf_dir']}/ens{wildcards.beta_idx}_m{wildcards.mass_idx}/wflow.*.out"
-    )
+    return glob(f"{config['wf_dir']}/{wildcards.subdir}/wflow.*.out")
 
 
 rule WF_and_Q:
@@ -77,18 +75,16 @@ rule WF_and_Q:
         script="src/WF_and_Q.py",
         data=WF_logs,
     output:
-        summary="intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/WF_summary.csv",
+        summary="intermediary_data/mdwf/{subdir}/WF_summary.csv",
     conda:
         "envs/basic-analysis.yml"
     shell:
-        "python -m {params.module} {input.data} --tag ens{wildcards.beta_idx}_m{wildcards.mass_idx} --output_file {output.summary} --W0 {config[W0]}"
+        "python -m {params.module} {input.data} --tag {wildcards.subdir} --output_file {output.summary} --W0 {config[W0]}"
 
 
 def WF_csvs(wildcards):
     return [
-        "intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/WF_summary.csv".format(
-            beta_idx=datum.beta_index, mass_idx=datum.mass_index
-        )
+        "intermediary_data/mdwf/{subdir}/WF_summary.csv".format(subdir=datum.name)
         for datum in metadata.itertuples()
         if datum.gflow_step > 0
     ]
@@ -111,24 +107,21 @@ rule combine_WF_Q:
 rule spectrum_and_decay:
     params:
         module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+        L=lookup(query="name == '{wildcards.subdir}'", within=metadata, cols="Nx"),
     input:
         script="src/spectrum_and_decay.py",
-        data=glob_wildcards(
-            f"{config['correlator_dir']}/ens{{beta_idx}}_m{{mass_idx}}/*.xml"
-        ),
+        data=glob_wildcards(f"{config['correlator_dir']}/{{subdir}}/*.xml"),
     output:
-        csv="intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/spectrum.csv",
+        csv="intermediary_data/mdwf/{subdir}/spectrum.csv",
     conda:
         "envs/basic-analysis.yml"
     shell:
-        "python -m {params.module} --correlator_dir {config[correlator_dir]}/ens{wildcards.beta_idx}_m{wildcards.mass_idx} --csv_file {output.csv}"
+        "python -m {params.module} --correlator_dir {config[correlator_dir]}/{wildcards.subdir} --csv_file {output.csv} --spatial_extent {params.L}"
 
 
 def spectrum_csvs(wildcards):
     return [
-        "intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/spectrum.csv".format(
-            beta_idx=datum.beta_index, mass_idx=datum.mass_index
-        )
+        "intermediary_data/mdwf/{subdir}/spectrum.csv".format(subdir=datum.name)
         for datum in metadata.itertuples()
         if datum.have_spectrum
     ]
@@ -148,78 +141,8 @@ rule combine_spectrum:
         "python -m {params.module} {input.data} --output_file {output.csv}"
 
 
-rule GMOR_plots:
-    params:
-        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
-    input:
-        script="src/GMOR_and_mV_mPS_ratio.py",
-        spectrum_csv=rules.spectrum_and_decay.output.csv,
-        wf_csv=rules.combine_WF_Q.output.csv,
-        plot_styles=config["plot_styles"],
-    output:
-        GMOR_mPS="assets/plots/GMOR_w0m0_vs_w0m_PS_{beta_idx}.{filetype}",
-        GMOR_fpi="assets/plots/GMOR_w0m0_vs_w0fpi_{beta_idx}.{filetype}",
-        GMOR_mPSfpi="assets/plots/GMOR_w0m0_vs_w0_m_PS_fpi_{beta_idx}.{filetype}",
-        bare="assets/plots/m0_vs_m_V_m_PS_{beta_idx}.{filetype}",
-    conda:
-        "envs/basic-analysis.yml"
-    shell:
-        "python -m {params.module} --plot_styles {input.plot_styles} --wf_results {input.wf_csv} --plateau_results {input.spectrum_csv} --beta_idx {wildcards.beta_idx} --correlator_dir_template {config[correlator_dir]}/ens{{N}}_m{{M}} --wf_dir_template {config[wf_dir]}/ens{{N}}_m{{M}} --output_file_GMOR_mPS {output.GMOR_mPS} --output_file_GMOR_fpi {output.GMOR_fpi} --output_file_GMOR_mPSfpi {output.GMOR_mPSfpi} --output_file_bare {output.bare}"
-
-
-rule NLO_w0_single_beta:
-    params:
-        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
-    input:
-        script="src/NLO_w0_single.py",
-        spectrum_csv=rules.spectrum_and_decay.output.csv,
-        wf_csv=rules.combine_WF_Q.output.csv,
-        plot_styles=config["plot_styles"],
-    output:
-        plot="assets/plots/NLO_mPS_w0_beta_{beta_idx}.{filetype}",
-    conda:
-        "envs/basic-analysis.yml"
-    shell:
-        "python -m {params.module} --plot_styles {input.plot_styles} --wf_results {input.wf_csv} --plateau_results {input.spectrum_csv} --beta_idx {wildcards.beta_idx} --correlator_dir_template {config[correlator_dir]}/ens{{N}}_m{{M}} --wf_dir_template {config[wf_dir]}/ens{{N}}_m{{M}} --output_file {output.plot}"
-
-
-rule NLO_w0_summary:
-    params:
-        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
-    input:
-        script="src/NLO_w0.py",
-        spectrum_csv=rules.combine_spectrum.output.csv,
-        wf_csv=rules.combine_WF_Q.output.csv,
-        plot_styles=config["plot_styles"],
-        wilson_csv=rules.combine_wilson_csvs.output.csv,
-    output:
-        plot="assets/plots/chiral_aoverw0_vs_mPS.{filetype}",
-    conda:
-        "envs/basic-analysis.yml"
-    shell:
-        "python -m {params.module} --plot_styles {input.plot_styles} --wf_results {input.wf_csv} --plateau_results {input.spectrum_csv} --correlator_dir_template {config[correlator_dir]}/ens{{N}}_m{{M}} --wf_dir_template {config[wf_dir]}/ens{{N}}_m{{M}} --wilson_results {input.wilson_csv} --output_file {output.plot}"
-
-
-rule chiPT:
-    params:
-        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
-    input:
-        script="src/perform_chiPT.py",
-        spectrum_csv=rules.spectrum_and_decay.output.csv,
-        wf_csv=rules.combine_WF_Q.output.csv,
-        plot_styles=config["plot_styles"],
-    output:
-        plot="assets/plots/fit_w0_mPS_mV.{filetype}",
-    conda:
-        "envs/basic-analysis.yml"
-    shell:
-        "python -m {params.module} --plot_styles {input.plot_styles} --wf_results {input.wf_csv} --plateau_results {input.spectrum_csv} --output_file {output.plot}"
-
-
 def fig_label(wildcards):
-    metadatum = metadata.query(
-        f"beta_index == {wildcards.beta_idx} & mass_index == {wildcards.mass_idx}",
-    )
+    metadatum = metadata.query(f"name == {wildcards.subdir}")
     assert len(metadatum) == 1
     return f"$\\beta={metadatum['beta'][0]}, am={metadatum['mF'][0]}$"
 
@@ -233,7 +156,7 @@ rule plot_wflow_E:
         data=WF_logs,
         plot_styles=config["plot_styles"],
     output:
-        plot="intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/E_flow.{filetype}",
+        plot="intermediary_data/mdwf/{subdir}/E_flow.{filetype}",
     conda:
         "envs/basic-analysis.yml"
     shell:
@@ -249,7 +172,7 @@ rule plot_wflow_W:
         data=WF_logs,
         plot_styles=config["plot_styles"],
     output:
-        plot="intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/W_flow.{filetype}",
+        plot="intermediary_data/mdwf/{subdir}/W_flow.{filetype}",
     conda:
         "envs/basic-analysis.yml"
     shell:
@@ -265,7 +188,7 @@ rule plot_topological_charge:
         data=WF_logs,
         plot_styles=config["plot_styles"],
     output:
-        plot="intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/Q_history.{filetype}",
+        plot="intermediary_data/mdwf/{subdir}/Q_history.{filetype}",
     conda:
         "envs/basic-analysis.yml"
     shell:
@@ -287,9 +210,7 @@ rule tabulate_spectrum:
 
 
 def hmc_logs(wildcards):
-    return glob(
-        f"{config['hmc_dir']}/ens{wildcards.beta_idx}_m{wildcards.mass_idx}/hmc_*.out"
-    )
+    return glob(f"{config['hmc_dir']}/{wildcards.subdir}/hmc_*.out")
 
 
 rule hmc_timing:
@@ -299,18 +220,16 @@ rule hmc_timing:
         script="src/hmc_timing.py",
         logs=hmc_logs,
     output:
-        csv="intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/timing.csv",
+        csv="intermediary_data/mdwf/{subdir}/timing.csv",
     conda:
         "envs/basic-analysis.yml"
     shell:
-        "python -m {params.module} {input.logs} --output_file {output.csv} --tag ens{wildcards.beta_idx}_m{wildcards.mass_idx}"
+        "python -m {params.module} {input.logs} --output_file {output.csv} --tag {wildcards.subdir}"
 
 
 def hmc_csvs(wildcards):
     return [
-        "intermediary_data/mdwf/ens{beta_idx}_m{mass_idx}/timing.csv".format(
-            beta_idx=datum.beta_index, mass_idx=datum.mass_index
-        )
+        "intermediary_data/mdwf/{subdir}/timing.csv".format(subdir=datum.name)
         for datum in metadata.itertuples()
         if datum.have_hmc
     ]
@@ -360,3 +279,67 @@ rule timing_plot:
         "envs/basic-analysis.yml"
     shell:
         "python -m {params.module} --data {input.data} --plot_styles {input.plot_styles} --output_file {output.plot}"
+
+
+rule GMOR_plots:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/GMOR_and_mV_mPS_ratio.py",
+        data=rules.combined_mobius_csv.output.csv,
+        plot_styles=config["plot_styles"],
+    output:
+        GMOR_mPS="assets/plots/GMOR_w0m0_vs_w0m_PS_{beta}.{filetype}",
+        GMOR_fpi="assets/plots/GMOR_w0m0_vs_w0fpi_{beta}.{filetype}",
+        GMOR_mPSfpi="assets/plots/GMOR_w0m0_vs_w0_m_PS_fpi_{beta}.{filetype}",
+        bare="assets/plots/m0_vs_m_V_m_PS_{beta}.{filetype}",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --plot_styles {input.plot_styles} --data {input.data} --beta {wildcards.beta} --output_file_GMOR_mPS {output.GMOR_mPS} --output_file_GMOR_fpi {output.GMOR_fpi} --output_file_GMOR_mPSfpi {output.GMOR_mPSfpi} --output_file_bare {output.bare}"
+
+
+rule NLO_w0_single_beta:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/NLO_w0_single.py",
+        data=rules.combined_mobius_csv.output.csv,
+        plot_styles=config["plot_styles"],
+    output:
+        plot="assets/plots/NLO_mPS_w0_beta_{beta}.{filetype}",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --plot_styles {input.plot_styles} --data {input.data} --beta {wildcards.beta} --output_file {output.plot}"
+
+
+rule NLO_w0_summary:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/NLO_w0.py",
+        data=rules.combined_mobius_csv.output.csv,
+        plot_styles=config["plot_styles"],
+        wilson_csv=rules.combine_wilson_csvs.output.csv,
+    output:
+        plot="assets/plots/chiral_aoverw0_vs_mPS.{filetype}",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --plot_styles {input.plot_styles} --data {input.data} --wilson_results {input.wilson_csv} --output_file {output.plot}"
+
+
+rule chiPT:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/perform_chiPT.py",
+        data=rules.combined_mobius_csv.output.csv,
+        plot_styles=config["plot_styles"],
+    output:
+        plot="assets/plots/fit_w0_mPS_mV.{filetype}",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --plot_styles {input.plot_styles} --data {input.data} --output_file {output.plot}"

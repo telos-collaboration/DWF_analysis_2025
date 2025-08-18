@@ -11,28 +11,12 @@ def add_styles_arg(parser):
     )
 
 
-def add_default_input_args(parser, dirs=True):
+def add_default_input_args(parser):
     parser.add_argument(
-        "--plateau_results",
-        help="CSV file containing results of spectrum fits",
+        "--data",
         required=True,
+        help="CSV file containing spectrum, gradient flow, and HMC timing results",
     )
-    parser.add_argument(
-        "--wf_results",
-        help="CSV file containing results of Wilson flow analysis",
-        required=True,
-    )
-    if dirs:
-        parser.add_argument(
-            "--correlator_dir_template",
-            help="Directory template for correlators",
-            required=True,
-        )
-        parser.add_argument(
-            "--wf_dir_template",
-            help="Directory template for Wilson flow logs",
-            required=True,
-        )
 
 
 def add_output_arg(parser, key=None, description=None):

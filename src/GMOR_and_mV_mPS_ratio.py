@@ -5,7 +5,6 @@ import pandas as pd
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 
-from . import extract_hdf5_files as eh5
 from . import plots
 
 parser = ArgumentParser(description="Plot GMOR and vector-pseudoscalar mass ratio")
@@ -15,24 +14,19 @@ plots.add_output_arg(parser, "GMOR_fpi", "GMOR (w0m0 vs w0fpi)")
 plots.add_output_arg(parser, "GMOR_mPSfpi", "GMOR (w0m0 vs w0mPSfpi)")
 plots.add_output_arg(parser, "bare", "m0 vs mVmPS")
 parser.add_argument(
-    "--beta_idx", type=int, required=True, help="Beta index of ensemble subset to use"
+    "--beta", type=float, required=True, help="Value of beta to subset data to"
 )
-plots.add_default_input_args(parser)
+parser.add_argument(
+    "--data",
+    required=True,
+    help="CSV file containing spectrum, gradient flow, and HMC timing results",
+)
 args = parser.parse_args()
 
 plots.set_styles(args)
 
 # Extract data into a Pandas DataFrame
-data = eh5.fill_array(
-    args.plateau_results,
-    args.wf_results,
-    args.correlator_dir_template,
-    args.wf_dir_template,
-)
-df = pd.DataFrame(data)
-
-# Define m0 values (these are the specific values you've mentioned earlier)
-m0_values = np.array([0.10, 0.08, 0.06, 0.05, 0.04, 0.035])
+df = pd.read_csv(args.data, comment="#")
 
 # Define color cycle for the plots
 CB_color_cycle = [
@@ -49,13 +43,14 @@ CB_color_cycle = [
 
 # Loop over each value of N (1 to 4 in this case)
 # Filter the DataFrame for N = N
-df_filtered = df[df["N"] == args.beta_idx]
+df_filtered = df[df["beta"] == args.beta]
 
 # Extract the relevant columns for m_PS, m_PS_err, w0, w0_err, fpi, fpi_err
-m_PS = df_filtered["m_PS"].values
-m_PS_err = df_filtered["m_PS_err"].values
-w0 = df_filtered["w0"].values
-w0_err = df_filtered["w0_err"].values
+m0_values = df_filtered["mF"].values
+m_PS = df_filtered["g0g5"].values
+m_PS_err = df_filtered["g0g5_err"].values
+w0 = df_filtered["w_0"].values
+w0_err = df_filtered["w_0_err"].values
 fpi = df_filtered["fpi"].values
 fpi_err = df_filtered["fpi_err"].values
 
@@ -323,8 +318,8 @@ plots.save_or_show(fig, args.output_file_GMOR_mPSfpi)
 
 # Now for m0 vs m_V / m_PS, perform the required approach
 # Extract m_V (vector meson mass) and m_PS (pseudoscalar meson mass) from the filtered DataFrame
-m_V = df_filtered["m_V"].values
-m_PS = df_filtered["m_PS"].values
+m_V = df_filtered["gi"].values
+m_PS = df_filtered["g0g5"].values
 
 # Define m0 vs m_V / m_PS fit function: a + b / x
 # Bootstrap resampling function
@@ -355,7 +350,7 @@ def curve_fit_function(x, a, b):
 # Propagate the error for m_V / m_PS
 m_V_m_PS = m_V / m_PS  # Compute the ratio m_V / m_PS
 err_m_V_m_PS = m_V_m_PS * np.sqrt(
-    (m_PS_err / m_PS) ** 2 + (df_filtered["m_V_err"].values / m_V) ** 2
+    (m_PS_err / m_PS) ** 2 + (df_filtered["g0gi_err"].values / m_V) ** 2
 )
 
 # Perform curve fitting on the original data
