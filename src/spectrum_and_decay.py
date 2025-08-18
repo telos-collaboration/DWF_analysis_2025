@@ -34,6 +34,12 @@ parser.add_argument(
 parser.add_argument(
     "--csv_file", type=FileType("w"), default="-", help="Output CSV file"
 )
+parser.add_argument(
+    "--spatial_extent",
+    type=int,
+    required=True,
+    help="Number of sites in spatial direction",
+)
 args = parser.parse_args()
 
 # Configuration
@@ -256,15 +262,7 @@ mean_plateau, error_plateau, _ = cu.perform_correlated_fit(
 )
 error_plateau = factor * error_plateau
 
-# Spatial Volume declaration:
-if time_extent == 32:
-    L = 24
-elif time_extent == 48:
-    L = 48
-elif time_extent == 64:
-    L = 56
-
-V = L**3
+V = args.spatial_extent**3
 
 # Additional XML-based fits
 gamma_pairs = [("Gamma5", "Gamma5"), ("GammaTGamma5", "Gamma5")]
