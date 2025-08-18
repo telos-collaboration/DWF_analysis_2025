@@ -24,6 +24,8 @@ plots = expand(
             "GMOR_w0m0_vs_w0_m_PS_fpi",
             "m0_vs_m_V_m_PS",
             "NLO_mPS_w0_beta",
+            "Ls_scan_beta6.8",
+            "Ls_scan_beta7.0",
         ],
         beta=set(metadata["beta"]),
     ),
@@ -279,6 +281,47 @@ rule timing_plot:
         "envs/basic-analysis.yml"
     shell:
         "python -m {params.module} --data {input.data} --plot_styles {input.plot_styles} --output_file {output.plot}"
+
+
+def Ls_scan_data(wildcards):
+    return [
+        "intermediary_data/mdwf/{subdir}/{filename}.csv".format(
+            subdir=datum.name,
+            filename=filename,
+        )
+        for datum in metadata.itertuples()
+        for filename in ["spectrum", "timing"]
+        if datum.use_in_Ls_scan and datum.beta == float(wildcards.beta)
+    ]
+
+
+rule combined_Ls_scan:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/concatenate_csv.py",
+        data=Ls_scan_data,
+    output:
+        csv="intermediary_data/Ls_scan_{beta}.csv",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} {input.data} --output_file {output.csv}"
+
+
+# TODO Test and fix
+rule Ls_scan_timing:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/plot_mres_vs_diracapps.py",
+        data=rules.combined_Ls_scan.output.csv,
+    output:
+        plot="assets/plots/Ls_scan_beta{beta}.{filetype}",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --data {input.data} --plot_styles {input.plot_styles} --output_file {output.plot} --title '$\\beta = {wildcards.beta}$"
 
 
 rule GMOR_plots:
