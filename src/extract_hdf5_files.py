@@ -27,7 +27,7 @@ def extract_Z_A(csv_path, directory):
     if row.empty:
         raise ValueError(f"Directory {directory} not found in the CSV.")
     mean = row["Z_A"].values[0]
-    error = row["err_Z_A"].values[0]
+    error = row["Z_A_err"].values[0]
     return pd.Series({"mean": mean, "error": error})
 
 

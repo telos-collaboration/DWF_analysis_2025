@@ -38,7 +38,7 @@ def format_columns(data):
             r"$am_{\mathrm{PS}}$": formatter("g0g5", "g0g5_err"),
             r"$am_{\mathrm{V}}$": formatter("gi", "gi_err"),
             r"$af_{\mathrm{PS}}$": formatter("fpi", "fpi_err"),
-            r"$Z_A$": formatter("Z_A", "err_Z_A"),
+            r"$Z_A$": formatter("Z_A", "Z_A_err"),
         }
     )
 

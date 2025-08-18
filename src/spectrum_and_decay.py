@@ -64,7 +64,7 @@ header = [
     "fpi",
     "fpi_err",
     "Z_A",
-    "err_Z_A",
+    "Z_A_err",
 ]
 
 
