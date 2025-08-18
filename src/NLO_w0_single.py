@@ -99,8 +99,8 @@ ax.fill_between(
     label="Confidence Band",
 )
 # Labeling the plot
-ax.set_xlabel(r"$(m_{\rm PS} w_0)^2$", fontsize=14)  # Update label for x^2
-ax.set_ylabel(r"$w_0 / a$", fontsize=14)
+ax.set_xlabel(r"$(m_{\rm PS} w_0)^2$")  # Update label for x^2
+ax.set_ylabel(r"$w_0 / a$")
 ax.legend(loc="best")
 ax.grid(True, linestyle="--")
 # Save the plot

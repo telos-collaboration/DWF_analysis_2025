@@ -175,8 +175,8 @@ ax.fill_between(
 )
 
 # Final plot formatting
-ax.set_xlabel("$w_0 m_0$", fontsize=15)
-ax.set_ylabel("$(w_0 m_{\\rm PS})^2$", fontsize=15)
+ax.set_xlabel("$w_0 m_0$")
+ax.set_ylabel("$(w_0 m_{\\rm PS})^2$")
 ax.legend(loc="best")
 ax.grid(linestyle="--")
 plots.save_or_show(fig, args.output_file_GMOR_mPS)
@@ -237,8 +237,8 @@ ax.fill_between(
 )
 
 # Final plot formatting for w0 * m0 vs w0 * f_pi
-ax.set_xlabel("$w_0 m_0$", fontsize=15)
-ax.set_ylabel("$w_0 f_{\\rm PS}$", fontsize=15)
+ax.set_xlabel("$w_0 m_0$")
+ax.set_ylabel("$w_0 f_{\\rm PS}$")
 ax.legend(loc="best")
 ax.grid(linestyle="--")
 plots.save_or_show(fig, args.output_file_GMOR_fpi)
@@ -310,8 +310,8 @@ ax.fill_between(
 )
 
 # Final plot formatting for w0 * m0 vs (w0^2 * m_PS * f_pi)^2
-ax.set_xlabel("$w_0 m_0$", fontsize=15)
-ax.set_ylabel("$(w_0^2 m_{\\rm PS} f_{\\rm PS})^2$", fontsize=15)
+ax.set_xlabel("$w_0 m_0$")
+ax.set_ylabel("$(w_0^2 m_{\\rm PS} f_{\\rm PS})^2$")
 ax.legend(loc="best")
 ax.grid(linestyle="--")
 plots.save_or_show(fig, args.output_file_GMOR_mPSfpi)
@@ -422,8 +422,8 @@ ax.fill_between(
 )
 
 # Final plot formatting for m0 vs m_V / m_PS
-ax.set_xlabel("$am_0$", fontsize=15)
-ax.set_ylabel("$m_{\\rm V} / m_{\\rm PS}$", fontsize=15)
+ax.set_xlabel("$am_0$")
+ax.set_ylabel("$m_{\\rm V} / m_{\\rm PS}$")
 ax.legend(loc="best")
 ax.grid(linestyle="--")
 plots.save_or_show(fig, args.output_file_bare)

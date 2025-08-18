@@ -73,12 +73,12 @@ for filename, color, label in zip(filenames, colors, labels):
     )
 
 # Customize plot
-plt.xlabel("$w^2_0 m^2_{\\rm PS}$", fontsize=14)  # Update x-axis label for x^2
-plt.ylabel("$a/w_0$", fontsize=14)
+plt.xlabel("$w^2_0 m^2_{\\rm PS}$")  # Update x-axis label for x^2
+plt.ylabel("$a/w_0$")
 # plt.ylim(0.20, 1.65)
 # plt.xlim(0.00, 0.85)
 # plt.title('Plot of x^2 vs 1/y with Error Propagation')
-plt.legend(fontsize=13)
+plt.legend()
 # plt.grid(True, linestyle='--')
 
 # Show plot
