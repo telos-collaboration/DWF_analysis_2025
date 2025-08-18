@@ -119,7 +119,7 @@ if not np.isnan(popt_mM[0]):
     )
 
 
-ax.set_xlabel("$(w_0 m_{\\rm PS})^2$", fontsize=15)
-ax.set_ylabel("$(w_0 m_{\\rm V})^2$", fontsize=15)
-ax.legend(fontsize=12, loc="best")
+ax.set_xlabel("$(w_0 m_{\\rm PS})^2$")
+ax.set_ylabel("$(w_0 m_{\\rm V})^2$")
+ax.legend(loc="best")
 plots.save_or_show(fig, args.output_file)
