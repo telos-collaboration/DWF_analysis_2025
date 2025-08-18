@@ -59,8 +59,8 @@ header = [
     "g0g5gi_err",
     "id",
     "id_err",
-    "effmass",
-    "effmass_err",
+    "mres",
+    "mres_err",
     "fpi",
     "fpi_err",
     "Z_A",
@@ -257,10 +257,10 @@ tmp = PJ5q_avgs / np.mean(g5g5_correlators_array, axis=1)
 mres_array = np.nan_to_num(tmp)  # Replace NaNs with 0
 
 covariance_matrix = np.cov((PJ5q_correlators_array.T / g5g5_correlators_array.T).T)
-mean_plateau, error_plateau, _ = cu.perform_correlated_fit(
+mean_plateau_mres, error_plateau_mres, _ = cu.perform_correlated_fit(
     mres, covariance_matrix, ti, tf
 )
-error_plateau = factor * error_plateau
+error_plateau_mres = factor * error_plateau_mres
 
 V = args.spatial_extent**3
 
@@ -360,8 +360,8 @@ results = [
     error_plateau_g0g5gi,
     mean_plateau_id,
     error_plateau_id,
-    mean_plateau,
-    error_plateau,
+    mean_plateau_mres,
+    error_plateau_mres,
     fpi,
     error_fpi,
     mean_plateau_ZA,
