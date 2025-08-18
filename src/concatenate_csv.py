@@ -20,6 +20,11 @@ def get_args():
         default="-",
         help="Where to place resulting concatenated CSV",
     )
+    parser.add_argument(
+        "--metadata_file",
+        default=None,
+        help="Global metadata file to annotate each row with",
+    )
     return parser.parse_args()
 
 
@@ -38,12 +43,21 @@ def concatenate(data):
     return disjoint_data[0].join(disjoint_data[1:])
 
 
+def annotate(data, metadata_file):
+    if metadata_file is None:
+        return data
+
+    metadata = pd.read_csv(metadata_file, comment="#")
+    return data.merge(metadata, on="name")
+
+
 def main():
     args = get_args()
     data = [pd.read_csv(filename, comment="#") for filename in args.csv_files]
     concatenated_data = concatenate(data)
+    annotated_data = annotate(concatenated_data, args.metadata_file)
     print(text_metadata(get_basic_metadata()), file=args.output_file)
-    print(concatenated_data.to_csv(), file=args.output_file)
+    print(annotated_data.to_csv(index=False), file=args.output_file)
 
 
 if __name__ == "__main__":
