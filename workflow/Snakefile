@@ -25,6 +25,14 @@ plots = expand(
         "mres_scan_mF0.06",
         "effmass_ZA_B1M1",
         "effmass_mres_B4M8",
+        "Ls_scan_beta6.9_mF0.06",
+        "Ls_scan_beta6.9_mF0.04",
+        "Ls_scan_beta7.2_mF0.08",
+        "Ls_scan_beta7.2_mF0.10",
+        "finitevolume_scan_beta6.9_mF0.06",
+        "finitevolume_scan_beta6.9_mF0.04",
+        "finitevolume_scan_beta7.2_mF0.04",
+        "finitevolume_scan_beta7.2_mF0.06",
     ]
     + expand(
         "{prefix}_{beta}",
@@ -389,6 +397,90 @@ rule mres_scan:
         plot_styles=config["plot_styles"],
     output:
         plot="assets/plots/mres_scan_mf{mF}.{filetype}",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --data {input.data} --plot_styles {input.plot_styles} --output_file {output.plot}"
+
+
+def Ls_scan_data(wildcards):
+    return [
+        "intermediary_data/mdwf/{subdir}/spectrum.csv".format(subdir=datum.name)
+        for datum in metadata.itertuples()
+        if datum.use_in_finite_volume_study
+        and datum.mF == float(wildcards.mF)
+        and datum.beta == float(wildcards.beta)
+        and datum.Nt == 32
+        and datum.Nx == 24
+    ]
+
+
+rule collate_Ls_scan:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/concatenate_csv.py",
+        data=Ls_scan_data,
+        metadata=config["metadata"],
+    output:
+        csv="intermediary_data/Ls_scan_beta{beta}_mF{mF}.csv",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} {input.data} --metadata_file {input.metadata} --output_file {output.csv}"
+
+
+rule PS_Ls_scan:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/plot_Ls_scan.py",
+        data=rules.collate_Ls_scan.output.csv,
+        plot_styles=config["plot_styles"],
+    output:
+        plot="assets/plots/Ls_scan_beta{beta}_mF{mF}.{filetype}",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --data {input.data} --plot_styles {input.plot_styles} --output_file {output.plot}"
+
+
+def volume_scan_data(wildcards):
+    breakpoint()
+    return [
+        "intermediary_data/mdwf/{subdir}/spectrum.csv".format(subdir=datum.name)
+        for datum in metadata.itertuples()
+        if datum.use_in_finite_volume_study
+        and datum.mF == float(wildcards.mF)
+        and datum.beta == float(wildcards.beta)
+        and datum.Ls == 8
+    ]
+
+
+rule collate_volume_scan:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/concatenate_csv.py",
+        data=volume_scan_data,
+        metadata=config["metadata"],
+    output:
+        csv="intermediary_data/volume_scan_beta{beta}_mF{mF}.csv",
+    conda:
+        "envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} {input.data} --metadata_file {input.metadata} --output_file {output.csv}"
+
+
+rule finite_volume_scan:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/plot_L_scan.py",
+        data=rules.collate_volume_scan.output.csv,
+        plot_styles=config["plot_styles"],
+    output:
+        plot="assets/plots/finitevolume_scan_beta{beta}_mF{mF}.{filetype}",
     conda:
         "envs/basic-analysis.yml"
     shell:
