@@ -7,6 +7,7 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+import uncertainties
 
 from .pj5q import read_pj5q
 from .pcac import read_pcac
@@ -20,6 +21,7 @@ from .g5g5 import (
     read_g0g5_g5,
 )
 from . import corrutils as cu
+from . import plots
 from .provenance import get_basic_metadata, text_metadata
 
 
@@ -40,7 +42,11 @@ parser.add_argument(
     required=True,
     help="Number of sites in spatial direction",
 )
+plots.add_styles_arg(parser)
+plots.add_output_arg(parser, key="mres", description="residual mass")
+plots.add_output_arg(parser, key="ZA", description="Z_A renormalisation factor")
 args = parser.parse_args()
+plots.set_styles(args)
 
 # Configuration
 header = [
@@ -66,6 +72,51 @@ header = [
     "Z_A",
     "Z_A_err",
 ]
+
+
+def plot_plateau(
+    eff_mass,
+    eff_mass_error,
+    fitted_mass,
+    fitted_mass_error,
+    plateau_start,
+    plateau_end,
+    ylabel=r"$m_{\mathrm{eff}}$",
+    output_filename=None,
+):
+    fig, ax = plt.subplots(figsize=(4, 3))
+
+    ax.set_xlabel("$t / a$")
+    ax.set_ylabel(ylabel)
+
+    ax.errorbar(
+        np.arange(len(eff_mass)) + 1,
+        eff_mass,
+        yerr=eff_mass_error,
+        marker="o",
+        linestyle="none",
+        label="Effective mass",
+    )
+    fitted_mass_with_error = uncertainties.ufloat(fitted_mass, fitted_mass_error)
+    ax.plot(
+        [plateau_start + 0.5, plateau_end + 1.5],
+        [fitted_mass, fitted_mass],
+        color="C1",
+        linestyle="--",
+        label=f"Plateau fit: ${fitted_mass_with_error:.02uL}$",
+    )
+    ax.fill_between(
+        [plateau_start + 0.5, plateau_end + 1.5],
+        [fitted_mass - fitted_mass_error, fitted_mass - fitted_mass_error],
+        [fitted_mass + fitted_mass_error, fitted_mass + fitted_mass_error],
+        color="C1",
+        alpha=0.2,
+    )
+    ax.legend(loc="best")
+    if "res" in ylabel:
+        ax.set_ylim(0, None)
+
+    plots.save_or_show(fig, output_filename)
 
 
 # Extract correlators from XML files
@@ -262,6 +313,17 @@ mean_plateau_mres, error_plateau_mres, _ = cu.perform_correlated_fit(
 )
 error_plateau_mres = factor * error_plateau_mres
 
+plot_plateau(
+    mres,
+    err_mres,
+    mean_plateau_mres,
+    error_plateau_mres,
+    ti,
+    tf,
+    r"$am_{\mathrm{res}}^{\mathrm{eff}}$",
+    args.output_file_mres,
+)
+
 V = args.spatial_extent**3
 
 # Additional XML-based fits
@@ -342,6 +404,18 @@ if plateau:
         ZA, covariance_matrix, ti, tf
     )
     error_plateau_ZA = factor * error_plateau_ZA
+
+    plot_plateau(
+        ZA,
+        err_ZA,
+        mean_plateau_ZA,
+        error_plateau_ZA,
+        ti,
+        tf,
+        r"$Z_A$",
+        args.output_file_ZA,
+    )
+
 
 # Write the results for this subdirectory
 results = [

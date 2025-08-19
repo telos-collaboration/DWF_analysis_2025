@@ -23,6 +23,8 @@ plots = expand(
         "mres_scan_largeLs",
         "mres_scan_mF0.02",
         "mres_scan_mF0.06",
+        "ZA_B1M1",
+        "mres_B4M8",
     ]
     + expand(
         "{prefix}_{beta}",
@@ -120,12 +122,24 @@ rule spectrum_and_decay:
     input:
         script="src/spectrum_and_decay.py",
         data=glob_wildcards(f"{config['correlator_dir']}/{{subdir}}/*.xml"),
+        plot_styles=config["plot_styles"],
     output:
         csv="intermediary_data/mdwf/{subdir}/spectrum.csv",
+        ZA_plot=f"intermediary_data/mdwf/{{subdir}}/ZA{config['plot_filetype']}",
+        mres_plot=f"intermediary_data/mdwf/{{subdir}}/mres{config['plot_filetype']}",
     conda:
         "envs/basic-analysis.yml"
     shell:
-        "python -m {params.module} --correlator_dir {config[correlator_dir]}/{wildcards.subdir} --csv_file {output.csv} --spatial_extent {params.L}"
+        "python -m {params.module} --correlator_dir {config[correlator_dir]}/{wildcards.subdir} --csv_file {output.csv} --spatial_extent {params.L} --plot_styles {input.plot_styles} --output_file_mres {output.mres_plot} --output_file_ZA {output.ZA_plot}"
+
+
+rule collate_eff_masses:
+    input:
+        plot="intermediary_data/mdwf/{ensemble}/{plot_name}.{filetype}",
+    output:
+        plot="assets/plots/{plot_name}_{ensemble}.{filetype}",
+    shell:
+        "cp {input.plot} {output.plot}"
 
 
 def spectrum_csvs(wildcards):
