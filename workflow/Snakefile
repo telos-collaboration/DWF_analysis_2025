@@ -15,7 +15,15 @@ CSVs = expand(
 )
 plots = expand(
     f"assets/plots/{{name}}{config['plot_filetype']}",
-    name=["chiral_aoverw0_vs_mPS", "fit_w0_mPS_mV"]
+    name=[
+        "chiral_aoverw0_vs_mPS",
+        "fit_w0_mPS_mV",
+        "Ls_scan_beta6.8",
+        "Ls_scan_beta7.0",
+        "mres_scan_largeLs",
+        "mres_scan_mF0.02",
+        "mres_scan_mF0.06",
+    ]
     + expand(
         "{prefix}_{beta}",
         prefix=[
@@ -24,11 +32,6 @@ plots = expand(
             "GMOR_w0m0_vs_w0_m_PS_fpi",
             "m0_vs_m_V_m_PS",
             "NLO_mPS_w0_beta",
-            "Ls_scan_beta6.8",
-            "Ls_scan_beta7.0",
-            "mres_scan_largeLs",
-            "mres_scan_mF0.02",
-            "mres_scan_mF0.06",
         ],
         beta=set(metadata["beta"]),
     ),
@@ -37,7 +40,8 @@ plots = expand(
 
 rule all:
     input:
-        "assets/info.json" "data_assets/info.json",
+        "assets/info.json",
+        "data_assets/info.json",
     default_target: True
 
 
