@@ -34,7 +34,7 @@ def get_args():
 
 def write_output(output_file, tag, w0, top_charge, tau_exp_Q):
     print(text_metadata(get_basic_metadata()), file=output_file)
-    print("name,w_0,w_0_error,<Q>,<Q>_err,tau_Q,err_tau_Q", file=output_file)
+    print("name,w_0,w_0_error,<Q>,<Q>_err,tau_Q,tau_Q_err", file=output_file)
     print(
         ",".join(
             map(
