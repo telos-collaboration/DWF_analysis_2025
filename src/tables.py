@@ -36,21 +36,49 @@ def get_args(description=None):
         type=FileType("w"),
         default="-",
     )
+    parser.add_argument(
+        "--max_rows",
+        default=40,
+        type=int,
+        help="Maximum number of rows before breaking tables up",
+    )
+    parser.add_argument(
+        "--sort_key",
+        dest="sort_keys",
+        action="append",
+        help="Column names to sort by",
+    )
     return parser.parse_args()
 
 
-def output_data(dataframe, output_file):
+def paginate(dataframe, max_rows):
+    if len(dataframe) < max_rows:
+        return [dataframe]
+
+    # Divide, rounding up
+    num_pages = -(-len(dataframe) // max_rows)
+    page_length = -(-len(dataframe) // num_pages)
+
+    return [
+        dataframe.iloc[start_row : start_row + page_length]
+        for start_row in range(0, len(dataframe), page_length)
+    ]
+
+
+def output_data(dataframe, output_file, max_rows):
     print(text_metadata(get_basic_metadata(), comment_char="%"), file=output_file)
-    print(
-        dataframe.style.hide(axis=0).to_latex(
-            hrules=True,
-            column_format="|c" * len(dataframe.columns) + "|",
-        ),
-        file=output_file,
-    )
+    for page_dataframe in paginate(dataframe, max_rows):
+        print(
+            page_dataframe.style.hide(axis=0).to_latex(
+                hrules=True,
+                column_format="|c" * len(dataframe.columns) + "|",
+            )
+            + " ",
+            file=output_file,
+        )
 
 
 def table_main(format_columns, description=None):
     args = get_args(description)
-    data = pd.read_csv(args.datafile, comment="#")
-    output_data(format_columns(data), args.output_file)
+    data = pd.read_csv(args.datafile, comment="#").sort_values(by=args.sort_keys)
+    output_data(format_columns(data), args.output_file, args.max_rows)
