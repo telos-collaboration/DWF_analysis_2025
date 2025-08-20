@@ -446,7 +446,6 @@ rule PS_Ls_scan:
 
 
 def volume_scan_data(wildcards):
-    breakpoint()
     return [
         "intermediary_data/mdwf/{subdir}/spectrum.csv".format(subdir=datum.name)
         for datum in metadata.itertuples()
