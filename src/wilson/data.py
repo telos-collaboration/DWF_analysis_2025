@@ -238,6 +238,29 @@ def get_target_correlator(
     return map(list, zip(*target_correlator_sets)), valence_masses
 
 
+def get_plaquettes(
+    filename,
+    ensemble_selection=0,
+    initial_configuration=0,
+    configuration_separation=1,
+):
+    plaquettes = []
+    with open(filename, "r") as f:
+        for line in f:
+            if not line.startswith("[IO][0]Configuration"):
+                continue
+            split_line = line.split()
+            if not split_line[2] == "read":
+                continue
+
+            plaquettes.append(float(split_line[-1].split("=")[-1]))
+
+    return asarray(plaquettes)[
+        initial_configuration * configuration_separation
+        + ensemble_selection :: configuration_separation
+    ]
+
+
 def get_flows(filename):
     data = read_csv(filename, delim_whitespace=True, names=["n", "t", "Ep", "Ec", "Q"])
     times = asarray(sorted(set(data.t)))

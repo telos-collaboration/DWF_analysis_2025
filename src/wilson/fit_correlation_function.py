@@ -1,12 +1,14 @@
 from argparse import ArgumentParser, FileType
+from numpy import pi
 import pandas as pd
 
 from .plots import do_eff_mass_plot, do_correlator_plot, set_plot_defaults
-from .data import get_target_correlator, get_output_filename
+from .data import get_target_correlator, get_output_filename, get_plaquettes
 from .bootstrap import (
     bootstrap_correlators,
     bootstrap_eff_masses,
     BOOTSTRAP_SAMPLE_COUNT,
+    basic_bootstrap,
 )
 from .fitting import minimize_chisquare, ps_fit_form, ps_av_fit_form, v_fit_form
 
@@ -340,6 +342,24 @@ def plot_measure_and_save_mesons(
     return valence_masses, fit_results_set
 
 
+def get_renorm_coefft(
+    filename, ensemble_selection, initial_configuration, configuration_separation, beta
+):
+    # Z_V = 1 + C_F \Delta \tilde{g}^2 / {16 \pi^2}
+    # \tilde{g} \langle P \rangle = 8 / \beta
+    # \Delta = \Delta_{\Sigma_1} + \Delta_{\gamma_mu}
+    delta_sigma_one = -12.82
+    delta_gmu = -7.75
+    fundamental_casimir = 5 / 4
+    plaquettes = get_plaquettes(
+        filename, ensemble_selection, initial_configuration, configuration_separation
+    )
+    coefft_values = 1 + fundamental_casimir * (delta_sigma_one + delta_gmu) * (
+        8 / beta / plaquettes
+    ) / (16 * pi**2)
+    return basic_bootstrap(coefft_values)
+
+
 def write_output(args, valence_masses, fit_results_set):
     if len(fit_results_set) > 1:
         raise NotImplementedError("Dataset contains multiple valence masses.")
@@ -348,32 +368,47 @@ def write_output(args, valence_masses, fit_results_set):
     decay_const, decay_const_error = fit_results_set[0][0][1]
     chisquare = fit_results_set[0][1]
 
-    df = pd.DataFrame(
-        [
-            {
-                "name": args.tag,
-                "NT": args.NT,
-                "NX": args.NS,
-                "NY": args.NS,
-                "NZ": args.NS,
-                "beta": args.beta,
-                "mF": args.mF,
-                "configuration_separation": args.configuration_separation,
-                "initial_configuration": args.initial_configuration,
-                "valence_mass": valence_masses[0],
-                f"{args.channel}_mass": mass,
-                f"{args.channel}_mass_error": mass_error,
-                f"{args.channel}_decay_const": decay_const,
-                f"{args.channel}_decay_const_error": decay_const_error,
-                f"{args.channel}_chisquare": chisquare,
-            }
-        ]
-    )
+    result = {
+        "name": args.tag,
+        "NT": args.NT,
+        "NX": args.NS,
+        "NY": args.NS,
+        "NZ": args.NS,
+        "beta": args.beta,
+        "mF": args.mF,
+        "configuration_separation": args.configuration_separation,
+        "initial_configuration": args.initial_configuration,
+        "valence_mass": valence_masses[0],
+        f"{args.channel}_mass": mass,
+        f"{args.channel}_mass_error": mass_error,
+        f"{args.channel}_bare_decay_const": decay_const,
+        f"{args.channel}_bare_decay_const_error": decay_const_error,
+        f"{args.channel}_chisquare": chisquare,
+    }
+    if args.channel == "g5":
+        renorm_coefft, renorm_coefft_error = get_renorm_coefft(
+            args.correlator_filename,
+            args.ensemble_selection,
+            args.initial_configuration,
+            args.configuration_separation,
+            args.beta,
+        )
+        result["g5_decay_const"] = renorm_coefft * decay_const
+        result["g5_decay_const_error"] = (
+            result["g5_decay_const"]
+            * (
+                (decay_const_error / decay_const) ** 2
+                + (renorm_coefft_error / renorm_coefft) ** 2
+            )
+            ** 0.5
+        )
+
     if len(fit_results_set[0][0]) > 2:
         amplitude, amplitude_error = fit_results_set[0][0][2]
-        df[f"{args.channel}_amplitude"] = amplitude
-        df[f"{args.channel}_amplitude_error"] = amplitude_error
+        result[f"{args.channel}_amplitude"] = amplitude
+        result[f"{args.channel}_amplitude_error"] = amplitude_error
 
+    df = pd.DataFrame([result])
     print(text_metadata(get_basic_metadata(), comment_char="#"), file=args.output_file)
     print(df.to_csv(index=False), file=args.output_file)
 
