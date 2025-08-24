@@ -28,6 +28,30 @@ def get_args():
     return parser.parse_args()
 
 
+def strip_consistent_columns(left_df, right_df):
+    left_df = left_df.copy()
+    common_columns = list(set(left_df.columns).intersection(right_df.columns))
+    for index, row in right_df.iterrows():
+        if index in left_df.index:
+            if not (left_df.loc[index][common_columns] == row[common_columns]).all():
+                raise ValueError("Inconsistent metadata.")
+        else:
+            left_df.loc[index] = row[common_columns]
+
+    return left_df, right_df.drop(columns=common_columns)
+
+
+def join_consistently(data):
+    joined_df = data[0]
+    for right_df in data[1:]:
+        left_df_consistent, right_df_stripped = strip_consistent_columns(
+            joined_df, right_df
+        )
+        joined_df = left_df_consistent.join(right_df_stripped)
+
+    return joined_df
+
+
 def concatenate(data):
     grouped_data = defaultdict(list)
     for datum in data:
@@ -40,7 +64,7 @@ def concatenate(data):
         return pd.DataFrame()
     if len(disjoint_data) == 1:
         return disjoint_data[0]
-    return disjoint_data[0].join(disjoint_data[1:])
+    return join_consistently(disjoint_data)
 
 
 def annotate(data, metadata_file):
@@ -57,7 +81,7 @@ def main():
     concatenated_data = concatenate(data)
     annotated_data = annotate(concatenated_data, args.metadata_file)
     print(text_metadata(get_basic_metadata()), file=args.output_file)
-    print(annotated_data.to_csv(index=False), file=args.output_file)
+    print(annotated_data.to_csv(), file=args.output_file)
 
 
 if __name__ == "__main__":
