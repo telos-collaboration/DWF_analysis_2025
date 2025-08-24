@@ -1,21 +1,9 @@
 #!/usr/bin/env python3
 
-from argparse import ArgumentParser
-
 import matplotlib.pyplot as plt
 import pandas as pd
 
 from . import plots
-
-
-def get_args():
-    parser = ArgumentParser(description="Plot scans of mPS against Ls")
-    plots.add_default_input_args(parser)
-    plots.add_output_arg(parser)
-    plots.add_styles_arg(parser)
-    args = parser.parse_args()
-    plots.set_styles(args)
-    return args
 
 
 def get_title(data):
@@ -52,7 +40,7 @@ def plot(data):
 
 
 def main():
-    args = get_args()
+    args = plots.get_args("Plot scans of mPS against Ls")
 
     data = pd.read_csv(args.data, comment="#").sort_values(by=["Ls"])
     plots.save_or_show(plot(data), args.output_file)

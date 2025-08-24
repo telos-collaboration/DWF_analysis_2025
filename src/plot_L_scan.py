@@ -9,8 +9,7 @@ from scipy.optimize import curve_fit
 from uncertainties import ufloat
 
 from . import plots
-from .plot_Ls_scan import get_args, get_title
-from .plot_mres_scans import bootstrap_curve_fit
+from .plot_Ls_scan import get_title
 
 
 def fit_form(x, m_inf, A, B):
@@ -67,7 +66,7 @@ def fit(data):
         p0=[initial_m_inf, 1, -1],
     )
 
-    return bootstrap_curve_fit(
+    return plots.bootstrap_curve_fit(
         fit_form,
         data["Nx"] * initial_popt[0],
         data["g0g5"],
@@ -77,7 +76,7 @@ def fit(data):
 
 
 def main():
-    args = get_args()
+    args = plots.get_args("Plot scans of mPS against L")
 
     data = pd.read_csv(args.data, comment="#")
     fit_params = fit(data)
