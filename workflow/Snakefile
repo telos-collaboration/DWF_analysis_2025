@@ -12,7 +12,8 @@ metadata = pd.read_csv(config["metadata"])
 
 
 CSVs = expand(
-    "data_assets/{name}.csv", name=["WF_measurements", "plateau_fits_results"]
+    "data_assets/{name}.csv",
+    name=["WF_measurements", "plateau_fits_results", "eft_results"],
 )
 plots = expand(
     f"assets/plots/{{name}}{config['plot_filetype']}",
@@ -34,6 +35,7 @@ plots = expand(
         "finitevolume_scan_beta6.9_mF0.04",
         "finitevolume_scan_beta7.2_mF0.04",
         "finitevolume_scan_beta7.2_mF0.06",
+        "eft_result",
     ]
     + expand(
         "{prefix}_{beta}",
