@@ -72,7 +72,7 @@ rule wilson_WF_and_Q:
         "python -m {params.module} {input.data} --tag {params.tag} --output_file {output.summary} --W0 {config[W0]} --fileformat hirep"
 
 
-def get_wilson_outputs(wildcards, key, filename):
+def get_wilson_outputs(wildcards, key, filenames):
     ensembles = [
         ensemble
         for name, ensemble in wilson_metadata.items()
@@ -88,6 +88,7 @@ def get_wilson_outputs(wildcards, key, filename):
             mF=ensemble["m"],
         )
         for ensemble in ensembles
+        for filename in filenames
     ]
 
 
@@ -96,9 +97,11 @@ rule combine_wilson_csvs:
         module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
     input:
         script="src/concatenate_csv.py",
-        flow_csvs=lambda wildcards: get_wilson_outputs(wildcards, "gflow", "WF_summary"),
+        flow_csvs=lambda wildcards: get_wilson_outputs(
+            wildcards, "gflow", ["WF_summary"]
+        ),
         spectrum_csvs=lambda wildcards: get_wilson_outputs(
-            wildcards, "mesons", "g5_mass"
+            wildcards, "mesons", ["g5_mass", "gk_mass"]
         ),
     output:
         csv="data_assets/wilson_summary.csv",
