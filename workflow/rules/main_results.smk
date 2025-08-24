@@ -142,3 +142,35 @@ rule chiPT:
         "../envs/basic-analysis.yml"
     shell:
         "python -m {params.module} --plot_styles {input.plot_styles} --data {input.data} --output_file {output.plot}"
+
+
+rule EFT_fit:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/eft_fit.py",
+        mobius_data=rules.collate_main_ensemble_results.output.csv,
+        wilson_data=rules.combine_wilson_csvs.output.csv,
+    output:
+        csv="data_assets/eft_results.csv",
+    conda:
+        "../envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --mobius_data {input.mobius_data} --wilson_data {input.wilson_data} --output_file {output.csv}"
+
+
+rule EFT_plot:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/eft_fit_plot.py",
+        mobius_data=rules.collate_main_ensemble_results.output.csv,
+        wilson_data=rules.combine_wilson_csvs.output.csv,
+        fit_result=rules.EFT_fit.output.csv,
+        plot_styles=config["plot_styles"],
+    output:
+        plot="assets/plots/eft_result.{filetype}",
+    conda:
+        "../envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} --plot_styles {input.plot_styles} --data {input.mobius_data} --wilson_data {input.wilson_data} --fit_result {input.fit_result} --output_file {output.plot}"
