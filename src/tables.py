@@ -80,5 +80,9 @@ def output_data(dataframe, output_file, max_rows):
 
 def table_main(format_columns, description=None):
     args = get_args(description)
-    data = pd.read_csv(args.datafile, comment="#").sort_values(by=args.sort_keys)
+    data = (
+        pd.read_csv(args.datafile, comment="#")
+        .sort_values(by=args.sort_keys)
+        .reset_index()
+    )
     output_data(format_columns(data), args.output_file, args.max_rows)
