@@ -174,3 +174,17 @@ rule EFT_plot:
         "../envs/basic-analysis.yml"
     shell:
         "python -m {params.module} --plot_styles {input.plot_styles} --data {input.mobius_data} --wilson_data {input.wilson_data} --fit_result {input.fit_result} --output_file {output.plot}"
+
+
+rule EFT_table:
+    params:
+        module=lambda wildcards, input: input.script.replace("/", ".")[:-3],
+    input:
+        script="src/tabulate_eft.py",
+        eft_csv=rules.EFT_fit.output.csv,
+    output:
+        tex="assets/tables/eft.tex",
+    conda:
+        "../envs/basic-analysis.yml"
+    shell:
+        "python -m {params.module} {input.eft_csv} --output_file {output.tex} --sort_key state --sort_key formulation"
