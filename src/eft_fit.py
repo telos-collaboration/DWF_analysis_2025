@@ -55,12 +55,14 @@ def fit_form_cubic(w0m_squared, one_over_w0, w0X_squared, L0X, W0X, L1X, L2X):
     )
 
 
+fit_forms = {
+    1: fit_form_linear,
+    2: fit_form_quadratic,
+    3: fit_form_cubic,
+}
+
+
 def fit_single(data, state_column, fit_order):
-    fit_forms = {
-        1: fit_form_linear,
-        2: fit_form_quadratic,
-        3: fit_form_cubic,
-    }
     # w0X_squared and W0X in addition to polynomial coefficients in w0m_squared
     n_params = fit_order + 2
     combined_x = np.vstack([data["x"].values, data["one_over_w0"].values])
@@ -108,10 +110,26 @@ def get_systematics(data, state_column, fit_order):
     return np.max(results, axis=0) - np.min(results, axis=0)
 
 
+def get_chisquare(data, state_column, fit_order, fit_params):
+    predicted_y = fit_forms[fit_order](
+        data["x"].values, data["one_over_w0"].values, *fit_params
+    )
+    return (
+        (
+            (
+                (predicted_y - data[f"y_{state_column}"].values)
+                / data[f"y_{state_column}_err"].values
+            )
+            ** 2
+        ).sum()
+    ) / (len(data) - fit_order - 2)
+
+
 def bootstrap_fit_with_systematics(data, state_column, fit_order):
     central_value, statistical_error = bootstrap_fit(data, state_column, fit_order)
     systematic_error = get_systematics(data, state_column, fit_order)
-    return central_value, statistical_error, systematic_error
+    chisquare = get_chisquare(data, state_column, fit_order, central_value)
+    return central_value, statistical_error, systematic_error, chisquare
 
 
 def fit_eft(data, fit_type):
@@ -134,11 +152,12 @@ def write_fit_results(mobius_fit, wilson_fit, output_file):
             result = {"state": state, "formulation": formulation}
 
             for key, value, statistical_error, systematic_error in zip(
-                ["w0X_squared", "L0X", "W0X", "L1X"], *fit_results[state]
+                ["w0X_squared", "L0X", "W0X", "L1X"], *fit_results[state][:-1]
             ):
                 result[key] = value
                 result[f"{key}_err"] = statistical_error
                 result[f"{key}_systematic_error"] = systematic_error
+            result["chisquare"] = fit_results[state][-1]
             results.append(result)
 
     print(text_metadata(get_basic_metadata(), comment_char="#"), file=output_file)

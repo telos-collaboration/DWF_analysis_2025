@@ -16,9 +16,9 @@ def format_float_column(data, value_column, decimal_places=None):
     return pd.Series([template.format(value=value) for value in data[value_column]])
 
 
-def basic_formatter(data, value_column, error_column):
+def basic_formatter(data, value_column, *error_columns):
     return format_column_errors(
-        value_column, error_column, df=data, abbreviate=True, latex=True
+        value_column, *error_columns, df=data, abbreviate=True, latex=True
     )
 
 
